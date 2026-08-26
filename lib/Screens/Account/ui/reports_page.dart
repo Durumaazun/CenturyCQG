@@ -10,7 +10,7 @@ class ReportsPage extends StatelessWidget {
     final isDarkMode = NerveBase().isDarkMode;
     final bgColor =
         isDarkMode ? const Color(0xFF0D110F) : const Color(0xFFF6F6F6);
-    final cardColor = isDarkMode ? const Color(0xFF0D110F) : Colors.white;
+    final cardColor = NerveColors.appBarBackground(isDarkMode);
     final borderColor = NerveColors.containerBorderColor;
     final textColor = isDarkMode ? Colors.white : const Color(0xFF505050);
     final sectionColor =

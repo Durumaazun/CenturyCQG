@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:century_cqg/Helper/nerve_styles.dart';
 import 'package:century_cqg/Helper/nerve_colors.dart';
 import 'package:century_cqg/Screens/Account/ui/app_settings_page.dart';
 import 'package:century_cqg/Screens/Account/ui/reports_page.dart';
 import 'package:century_cqg/Helper/nerve_base.dart';
+import 'package:century_cqg/Screens/Dashboard/service/dasboard_service.dart';
 
 class SettingsTab extends StatelessWidget {
   const SettingsTab({super.key});
 
   @override
   Widget build(BuildContext context) {
+    context.watch<DashboardService>();
     final isDarkMode = NerveBase().isDarkMode;
     final cardColor = isDarkMode ? const Color(0xFF0D110F) : Colors.white;
     final iconBg =
@@ -85,6 +88,8 @@ class _SettingsListTile extends StatelessWidget {
   final IconData icon;
   final bool isLogout;
   final VoidCallback? onTap;
+  final Widget? trailing;
+  final bool showChevron;
 
   const _SettingsListTile({
     required this.isDarkMode,
@@ -94,6 +99,8 @@ class _SettingsListTile extends StatelessWidget {
     required this.icon,
     this.isLogout = false,
     this.onTap,
+    this.trailing,
+    this.showChevron = true,
   });
 
   @override
@@ -102,6 +109,8 @@ class _SettingsListTile extends StatelessWidget {
         isLogout
             ? const Color(0xFFFF4D4F)
             : (isDarkMode ? Colors.white : const Color(0xFF4A4A4A));
+    final borderColor =
+        isDarkMode ? const Color(0xFF282D2A) : NerveColors.containerBorderColor;
 
     return Material(
       color: Colors.transparent,
@@ -113,10 +122,7 @@ class _SettingsListTile extends StatelessWidget {
           decoration: BoxDecoration(
             color: cardColor,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: NerveColors.containerBorderColor,
-              width: 1,
-            ),
+            border: Border.all(color: borderColor, width: 1),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(isDarkMode ? 0.18 : 0.06),
@@ -152,11 +158,14 @@ class _SettingsListTile extends StatelessWidget {
                   ).copyWith(color: titleColor),
                 ),
               ),
-              Icon(
-                Icons.chevron_right,
-                size: 22,
-                color: isDarkMode ? Colors.grey[400] : Colors.grey[500],
-              ),
+              if (trailing != null)
+                trailing!
+              else if (showChevron)
+                Icon(
+                  Icons.chevron_right,
+                  size: 22,
+                  color: isDarkMode ? Colors.grey[400] : Colors.grey[500],
+                ),
             ],
           ),
         ),

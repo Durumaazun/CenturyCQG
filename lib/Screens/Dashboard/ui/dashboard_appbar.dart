@@ -17,7 +17,6 @@ class DashboardAppbar extends StatelessWidget implements PreferredSizeWidget {
     return Consumer<DashboardService>(
       builder: (context, service, _) {
         final isDarkMode = NerveBase().isDarkMode;
-        final titleColor = NerveStyles.titleColor(isDarkMode);
         final iconColor = NerveStyles.iconColor(isDarkMode);
         final appBarBackground = NerveStyles.appBarBackground(isDarkMode);
 
@@ -104,6 +103,7 @@ class CommonAppbar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<DashboardService>();
     final isDarkMode = NerveBase().isDarkMode;
     return AppBar(
       toolbarHeight: NerveStyles.appBarHeight,

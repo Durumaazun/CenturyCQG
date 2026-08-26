@@ -167,6 +167,9 @@ class PositionSymbolDetailsPage extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               Container(
+                constraints: BoxConstraints(
+                  minHeight: MediaQuery.sizeOf(context).height - 250,
+                ),
                 padding: const EdgeInsets.only(left: 16, top: 10, bottom: 10),
                 decoration: NerveStyles.tradeDetailsCardDecoration(
                   cardColor,
@@ -279,28 +282,12 @@ class PositionSymbolDetailsPage extends StatelessWidget {
                   textAlign: TextAlign.end,
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: _orderMetric('Price', '164.68', mutedColor, titleColor),
-              ),
               Expanded(
                 child: _orderMetric(
-                  'Stop Loss',
-                  '158.00',
+                  'Price',
+                  '164.68',
                   mutedColor,
-                  const Color(0xFFFF4A4A),
-                ),
-              ),
-              Expanded(
-                child: _orderMetric(
-                  'Take Profit',
-                  '172.00',
-                  mutedColor,
-                  positiveColor,
+                  titleColor,
                   textAlign: TextAlign.end,
                 ),
               ),
@@ -425,8 +412,13 @@ class _CloseAllPositionsSheet extends StatelessWidget {
                         const SizedBox(height: 14),
                         Text(
                           'Are you sure you want to CLOSE ALL positions of $symbol?',
-                          style: NerveStyles.tradeDetailsSectionTitleStyle(
-                            titleColor,
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w500,
+                            fontSize: 14,
+                            height: 1.5,
+                            letterSpacing: 0,
+                            color: titleColor,
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -437,7 +429,7 @@ class _CloseAllPositionsSheet extends StatelessWidget {
                               bottom: index == entries.length - 1 ? 0 : 16,
                             ),
                             child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
                                 InkWell(
                                   onTap: () {
@@ -446,7 +438,6 @@ class _CloseAllPositionsSheet extends StatelessWidget {
                                   child: Container(
                                     width: 18,
                                     height: 18,
-                                    margin: const EdgeInsets.only(top: 18),
                                     decoration: BoxDecoration(
                                       color: const Color(0xFFF2C400),
                                       borderRadius: BorderRadius.circular(4),
@@ -463,52 +454,38 @@ class _CloseAllPositionsSheet extends StatelessWidget {
                                 ),
                                 const SizedBox(width: 10),
                                 Expanded(
-                                  child: Column(
+                                  child: Row(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      Row(
-                                        children: [
-                                          Expanded(
-                                            child: Text(
-                                              entry.orderId,
-                                              style:
-                                                  NerveStyles.tradeDetailsHeaderSymbolStyle(
-                                                    titleColor,
-                                                  ),
-                                            ),
-                                          ),
-                                          Expanded(
-                                            child: Text(
-                                              entry.side,
-                                              textAlign: TextAlign.center,
-                                              style:
-                                                  NerveStyles.tradeDetailsOrderPnlStyle(
-                                                    positiveColor,
-                                                  ),
-                                            ),
-                                          ),
-                                          Expanded(
-                                            child: Text(
-                                              entry.units,
-                                              textAlign: TextAlign.center,
-                                              style:
-                                                  NerveStyles.tradeDetailsHeaderSymbolStyle(
-                                                    titleColor,
-                                                  ),
-                                            ),
-                                          ),
-                                          Expanded(
-                                            child: Text(
-                                              entry.pnl,
-                                              textAlign: TextAlign.end,
-                                              style:
-                                                  NerveStyles.tradeDetailsOrderPnlStyle(
-                                                    positiveColor,
-                                                  ),
-                                            ),
-                                          ),
-                                        ],
+                                      Expanded(
+                                        child: _closePositionMetric(
+                                          'Units',
+                                          entry.orderId,
+                                          titleColor,
+                                        ),
+                                      ),
+                                      Expanded(
+                                        child: _closePositionMetric(
+                                          'B/S',
+                                          entry.side,
+                                          positiveColor,
+                                        ),
+                                      ),
+                                      Expanded(
+                                        child: _closePositionMetric(
+                                          'Units',
+                                          entry.units,
+                                          titleColor,
+                                        ),
+                                      ),
+                                      Expanded(
+                                        child: _closePositionMetric(
+                                          'P&L',
+                                          entry.pnl,
+                                          positiveColor,
+                                          textAlign: TextAlign.end,
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -577,6 +554,47 @@ class _CloseAllPositionsSheet extends StatelessWidget {
           );
         },
       ),
+    );
+  }
+
+  Widget _closePositionMetric(
+    String label,
+    String value,
+    Color valueColor, {
+    TextAlign textAlign = TextAlign.start,
+  }) {
+    return Column(
+      crossAxisAlignment:
+          textAlign == TextAlign.end
+              ? CrossAxisAlignment.end
+              : CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          textAlign: textAlign,
+          style: const TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 10,
+            fontWeight: FontWeight.w400,
+            height: 1,
+            letterSpacing: 0,
+            color: Color(0xFF8B918E),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          value,
+          textAlign: textAlign,
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            height: 1,
+            letterSpacing: 0,
+            color: valueColor,
+          ),
+        ),
+      ],
     );
   }
 }

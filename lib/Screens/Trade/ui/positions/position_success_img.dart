@@ -19,7 +19,7 @@ class NetPosClsSuccesPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = NerveBase().isDarkMode;
-    final sheetHeight = MediaQuery.of(context).size.height * 0.60;
+    final sheetHeight = MediaQuery.of(context).size.height * 0.65;
     final bgColor = isDarkMode ? const Color(0xFF111614) : Colors.white;
     final borderColor =
         isDarkMode ? const Color(0xFF2B302D) : const Color(0xFFE6E9E7);
@@ -40,7 +40,7 @@ class NetPosClsSuccesPage extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
                 child: Column(
-                  mainAxisSize: MainAxisSize.max,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(
                       width: 38,
@@ -50,14 +50,13 @@ class NetPosClsSuccesPage extends StatelessWidget {
                         borderRadius: BorderRadius.circular(999),
                       ),
                     ),
-                    const SizedBox(height: 22),
+                    const SizedBox(height: 2),
                     SvgPicture.asset(
                       'lib/Resources/Images/position_success_img.svg',
                       width: 72,
-                      height: 72,
+                      height: 122,
                       fit: BoxFit.contain,
                     ),
-                    const SizedBox(height: 18),
                     Text(
                       'Position Closed Successfully',
                       style: NerveStyles.tradeDetailsSectionTitleStyle(
@@ -65,7 +64,7 @@ class NetPosClsSuccesPage extends StatelessWidget {
                       ),
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 12),
                     Text(
                       'Your order has been executed',
                       style: NerveStyles.tradeDetailsOrderDateStyle(mutedColor),
@@ -78,12 +77,10 @@ class NetPosClsSuccesPage extends StatelessWidget {
                             isDarkMode
                                 ? const Color(0xFF171D1A)
                                 : const Color(0xFFF9FAFB),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      margin: const EdgeInsets.symmetric(horizontal: 29),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
+                      margin: const EdgeInsets.symmetric(horizontal: 18),
+                      padding: const EdgeInsets.symmetric(vertical: 6),
                       child: Column(
                         children: [
                           _infoRow('PRODUCT', symbol, mutedColor, titleColor),

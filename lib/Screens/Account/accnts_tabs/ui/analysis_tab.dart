@@ -1,11 +1,150 @@
 import 'package:flutter/material.dart';
-import 'package:syncfusion_flutter_charts/charts.dart';
+import 'package:fl_chart/fl_chart.dart';
+import 'package:table_calendar/table_calendar.dart';
 import 'package:century_cqg/Helper/nerve_styles.dart';
 import 'package:century_cqg/Helper/nerve_colors.dart';
 import 'package:century_cqg/Helper/nerve_base.dart';
+import 'package:century_cqg/Screens/Account/model/account_model.dart';
 
-class AnalysisTab extends StatelessWidget {
+class AnalysisTab extends StatefulWidget {
   const AnalysisTab({super.key});
+
+  @override
+  State<AnalysisTab> createState() => _AnalysisTabState();
+}
+
+class _AnalysisTabState extends State<AnalysisTab> {
+  static final DateTime _firstCalendarMonth = DateTime(2020, 1, 1);
+  static final DateTime _lastCalendarMonth = DateTime(2030, 12, 1);
+  DateTime _focusedDay = DateTime(DateTime.now().year, DateTime.now().month, 1);
+
+  bool _isAfterToday(DateTime day) {
+    final today = DateTime.now();
+    return day.isAfter(DateTime(today.year, today.month, today.day));
+  }
+
+  _TradeDayStatus _statusForDay(DateTime day) {
+    if (_isAfterToday(day)) {
+      return _TradeDayStatus.future;
+    }
+
+    final seed = day.year * 10000 + day.month * 100 + day.day;
+    switch (seed % 3) {
+      case 0:
+        return _TradeDayStatus.win;
+      case 1:
+        return _TradeDayStatus.loss;
+      default:
+        return _TradeDayStatus.none;
+    }
+  }
+
+  String _monthName(int month) {
+    const monthNames = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    return monthNames[month - 1];
+  }
+
+  Future<void> _selectMonthAndYear(bool isDarkMode) async {
+    var selectedYear = _focusedDay.year;
+    var selectedMonth = _focusedDay.month;
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        final dialogColor = isDarkMode ? const Color(0xFF141A16) : Colors.white;
+        final textColor = isDarkMode ? Colors.white : const Color(0xFF454A54);
+
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: dialogColor,
+              title: Text(
+                'Select month and year',
+                style: TextStyle(color: textColor, fontSize: 18),
+              ),
+              content: Row(
+                children: [
+                  Expanded(
+                    child: DropdownButton<int>(
+                      value: selectedMonth,
+                      isExpanded: true,
+                      dropdownColor: dialogColor,
+                      style: TextStyle(color: textColor),
+                      items: List.generate(
+                        12,
+                        (index) => DropdownMenuItem(
+                          value: index + 1,
+                          child: Text(_monthName(index + 1)),
+                        ),
+                      ),
+                      onChanged: (month) {
+                        if (month != null) {
+                          setDialogState(() => selectedMonth = month);
+                        }
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: DropdownButton<int>(
+                      value: selectedYear,
+                      isExpanded: true,
+                      dropdownColor: dialogColor,
+                      style: TextStyle(color: textColor),
+                      items: [
+                        for (
+                          var year = _firstCalendarMonth.year;
+                          year <= _lastCalendarMonth.year;
+                          year++
+                        )
+                          DropdownMenuItem(
+                            value: year,
+                            child: Text(year.toString()),
+                          ),
+                      ],
+                      onChanged: (year) {
+                        if (year != null) {
+                          setDialogState(() => selectedYear = year);
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      _focusedDay = DateTime(selectedYear, selectedMonth, 1);
+                    });
+                    Navigator.pop(dialogContext);
+                  },
+                  child: const Text('Apply'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
 
   Future<void> _showPerformanceFilterBottomSheet(
     BuildContext context,
@@ -56,7 +195,7 @@ class AnalysisTab extends StatelessWidget {
                   children: [
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+                      padding: const EdgeInsets.fromLTRB(16, 12, 15, 16),
                       decoration: BoxDecoration(
                         color: panelColor,
                         borderRadius: const BorderRadius.only(
@@ -263,73 +402,25 @@ class AnalysisTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDarkMode = NerveBase().isDarkMode;
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF0D110F) : Colors.white,
-        border: Border.all(color: NerveColors.containerBorderColor, width: 1),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Performance Analysis',
-            style: NerveStyles.black_medium_14_400(isDarkMode),
-          ),
-          const SizedBox(height: 16),
-          _performanceChartView(isDarkMode),
-          const SizedBox(height: 20),
-          _performanceStatsView(isDarkMode, context),
-          const SizedBox(height: 20),
-          _tradesCalendarView(isDarkMode),
-        ],
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _performanceChartView(isDarkMode),
+        const SizedBox(height: 12),
+
+        _performanceStatsView(isDarkMode, context),
+        const SizedBox(height: 12),
+        _tradesCalendarView(isDarkMode),
+      ],
     );
   }
 
   Widget _tradesCalendarView(bool isDarkMode) {
     final weekDays = const ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-    final days = <_TradeCalendarDayData>[
-      _TradeCalendarDayData(day: '30', status: _TradeDayStatus.outsideMonth),
-      _TradeCalendarDayData(day: '31', status: _TradeDayStatus.outsideMonth),
-      _TradeCalendarDayData(day: '1', status: _TradeDayStatus.loss),
-      _TradeCalendarDayData(day: '2', status: _TradeDayStatus.win),
-      _TradeCalendarDayData(day: '3', status: _TradeDayStatus.none),
-      _TradeCalendarDayData(day: '4', status: _TradeDayStatus.win),
-      _TradeCalendarDayData(day: '5', status: _TradeDayStatus.none),
-      _TradeCalendarDayData(day: '6', status: _TradeDayStatus.win),
-      _TradeCalendarDayData(day: '7', status: _TradeDayStatus.none),
-      _TradeCalendarDayData(day: '8', status: _TradeDayStatus.loss),
-      _TradeCalendarDayData(day: '9', status: _TradeDayStatus.win),
-      _TradeCalendarDayData(day: '10', status: _TradeDayStatus.loss),
-      _TradeCalendarDayData(day: '11', status: _TradeDayStatus.none),
-      _TradeCalendarDayData(day: '12', status: _TradeDayStatus.loss),
-      _TradeCalendarDayData(day: '13', status: _TradeDayStatus.none),
-      _TradeCalendarDayData(day: '14', status: _TradeDayStatus.loss),
-      _TradeCalendarDayData(day: '15', status: _TradeDayStatus.win),
-      _TradeCalendarDayData(day: '16', status: _TradeDayStatus.none),
-      _TradeCalendarDayData(day: '17', status: _TradeDayStatus.win),
-      _TradeCalendarDayData(day: '18', status: _TradeDayStatus.win),
-      _TradeCalendarDayData(day: '19', status: _TradeDayStatus.win),
-      _TradeCalendarDayData(day: '20', status: _TradeDayStatus.none),
-      _TradeCalendarDayData(day: '21', status: _TradeDayStatus.win),
-      _TradeCalendarDayData(day: '22', status: _TradeDayStatus.none),
-      _TradeCalendarDayData(day: '23', status: _TradeDayStatus.loss),
-      _TradeCalendarDayData(day: '24', status: _TradeDayStatus.win),
-      _TradeCalendarDayData(day: '25', status: _TradeDayStatus.loss),
-      _TradeCalendarDayData(day: '26', status: _TradeDayStatus.win),
-      _TradeCalendarDayData(day: '27', status: _TradeDayStatus.win),
-      _TradeCalendarDayData(day: '28', status: _TradeDayStatus.loss),
-      _TradeCalendarDayData(day: '29', status: _TradeDayStatus.win),
-      _TradeCalendarDayData(day: '30', status: _TradeDayStatus.win),
-      _TradeCalendarDayData(day: '1', status: _TradeDayStatus.outsideMonth),
-      _TradeCalendarDayData(day: '2', status: _TradeDayStatus.outsideMonth),
-      _TradeCalendarDayData(day: '3', status: _TradeDayStatus.outsideMonth),
-    ];
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(8, 12, 8, 8),
+      padding: const EdgeInsets.only(top: 8, bottom: 8, left: 16, right: 16),
       decoration: BoxDecoration(
         color: isDarkMode ? const Color(0xFF0D110F) : Colors.white,
         border: Border(
@@ -367,24 +458,56 @@ class AnalysisTab extends StatelessWidget {
                   _calendarNavButton(
                     icon: Icons.chevron_left_rounded,
                     isDarkMode: isDarkMode,
+                    isEnabled: _focusedDay.isAfter(_firstCalendarMonth),
+                    onTap: () {
+                      setState(() {
+                        _focusedDay = DateTime(
+                          _focusedDay.year,
+                          _focusedDay.month - 1,
+                          1,
+                        );
+                      });
+                    },
                   ),
                   const SizedBox(width: 10),
-                  Text(
-                    'Jun 2026',
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w500,
-                      fontSize: 16,
-                      height: 1,
-                      letterSpacing: 0,
-                      color:
-                          isDarkMode ? Colors.white : const Color(0xFF454A54),
+                  InkWell(
+                    onTap: () => _selectMonthAndYear(isDarkMode),
+                    borderRadius: BorderRadius.circular(8),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 6,
+                      ),
+                      child: Text(
+                        '${_monthName(_focusedDay.month)} ${_focusedDay.year}',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w500,
+                          fontSize: 14,
+                          height: 1,
+                          letterSpacing: 0,
+                          color:
+                              isDarkMode
+                                  ? Colors.white
+                                  : const Color(0xFF454A54),
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 10),
                   _calendarNavButton(
                     icon: Icons.chevron_right_rounded,
                     isDarkMode: isDarkMode,
+                    isEnabled: _focusedDay.isBefore(_lastCalendarMonth),
+                    onTap: () {
+                      setState(() {
+                        _focusedDay = DateTime(
+                          _focusedDay.year,
+                          _focusedDay.month + 1,
+                          1,
+                        );
+                      });
+                    },
                   ),
                 ],
               ),
@@ -418,19 +541,55 @@ class AnalysisTab extends StatelessWidget {
                     .toList(),
           ),
           const SizedBox(height: 12),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: days.length,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 7,
-              childAspectRatio: 1,
-              mainAxisSpacing: 8,
-              crossAxisSpacing: 8,
+          TableCalendar<void>(
+            firstDay: DateTime(2020),
+            lastDay: DateTime(2030, 12, 31),
+            focusedDay: _focusedDay,
+            startingDayOfWeek: StartingDayOfWeek.monday,
+            headerVisible: false,
+            daysOfWeekVisible: false,
+            sixWeekMonthsEnforced: true,
+            rowHeight: 56,
+            calendarStyle: const CalendarStyle(
+              cellMargin: EdgeInsets.zero,
+              cellPadding: EdgeInsets.zero,
+              outsideDaysVisible: true,
             ),
-            itemBuilder: (context, index) {
-              final day = days[index];
-              return _calendarDayCell(day: day, isDarkMode: isDarkMode);
+            calendarBuilders: CalendarBuilders<void>(
+              defaultBuilder:
+                  (context, day, focusedDay) => Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: _calendarDayCell(
+                      day: day,
+                      status: _statusForDay(day),
+                      isDarkMode: isDarkMode,
+                    ),
+                  ),
+              todayBuilder:
+                  (context, day, focusedDay) => Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: _calendarDayCell(
+                      day: day,
+                      status: _statusForDay(day),
+                      isDarkMode: isDarkMode,
+                      isToday: true,
+                    ),
+                  ),
+              outsideBuilder:
+                  (context, day, focusedDay) => Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: _calendarDayCell(
+                      day: day,
+                      status: null,
+                      isDarkMode: isDarkMode,
+                      isOutside: true,
+                    ),
+                  ),
+            ),
+            onPageChanged: (focusedDay) {
+              setState(() {
+                _focusedDay = focusedDay;
+              });
             },
           ),
           const SizedBox(height: 14),
@@ -455,36 +614,63 @@ class AnalysisTab extends StatelessWidget {
   Widget _calendarNavButton({
     required IconData icon,
     required bool isDarkMode,
+    required bool isEnabled,
+    required VoidCallback onTap,
   }) {
-    return Container(
-      width: 28,
-      height: 28,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDarkMode ? const Color(0xFF303630) : const Color(0xFFE5EAF0),
-          width: 1,
+    return InkWell(
+      onTap: isEnabled ? onTap : null,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: 28,
+        height: 28,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color:
+                isEnabled
+                    ? (isDarkMode
+                        ? const Color(0xFF303630)
+                        : const Color(0xFFE5EAF0))
+                    : (isDarkMode
+                        ? const Color(0xFF202520)
+                        : const Color(0xFFF2F3F5)),
+            width: 1,
+          ),
         ),
-      ),
-      child: Icon(
-        icon,
-        size: 18,
-        color: isDarkMode ? const Color(0xFF9AA3B2) : const Color(0xFF8A93A3),
+        child: Icon(
+          icon,
+          size: 18,
+          color:
+              isEnabled
+                  ? (isDarkMode
+                      ? const Color(0xFF9AA3B2)
+                      : const Color(0xFF8A93A3))
+                  : (isDarkMode
+                      ? const Color(0xFF505850)
+                      : const Color(0xFFB8BEC7)),
+        ),
       ),
     );
   }
 
   Widget _calendarDayCell({
-    required _TradeCalendarDayData day,
+    required DateTime day,
+    required _TradeDayStatus? status,
     required bool isDarkMode,
+    bool isOutside = false,
+    bool isToday = false,
   }) {
-    final isWin = day.status == _TradeDayStatus.win;
-    final isLoss = day.status == _TradeDayStatus.loss;
-    final isNoTrade = day.status == _TradeDayStatus.none;
-    final isOutside = day.status == _TradeDayStatus.outsideMonth;
+    final isWin = status == _TradeDayStatus.win;
+    final isLoss = status == _TradeDayStatus.loss;
+    final isNoTrade = status == _TradeDayStatus.none;
+    final isFuture = status == _TradeDayStatus.future;
 
     final backgroundColor =
-        isWin
+        isToday
+            ? const Color(0xFFFFC600)
+            : isFuture
+            ? (isDarkMode ? const Color(0xFF252A33) : const Color(0xFFE8EAF0))
+            : isWin
             ? const Color(0xFF20A16F)
             : isLoss
             ? const Color(0xFFF6465D)
@@ -502,7 +688,7 @@ class AnalysisTab extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: isOutside ? Colors.transparent : backgroundColor,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(18),
         border:
             isOutside
                 ? Border.all(
@@ -516,7 +702,7 @@ class AnalysisTab extends StatelessWidget {
       ),
       alignment: Alignment.center,
       child: Text(
-        day.day,
+        day.day.toString(),
         textAlign: TextAlign.center,
         style: TextStyle(
           fontFamily: 'Inter',
@@ -524,29 +710,36 @@ class AnalysisTab extends StatelessWidget {
           fontSize: 14,
           height: 1,
           letterSpacing: 0,
-          color: isNoTrade ? const Color(0xFF7D8798) : dayTextColor,
+          color:
+              isToday
+                  ? const Color(0xFF2A2A2A)
+                  : isFuture
+                  ? (isDarkMode
+                      ? const Color(0xFF69727E)
+                      : const Color(0xFF9CA3AF))
+                  : (isNoTrade ? const Color(0xFF7D8798) : dayTextColor),
         ),
       ),
     );
   }
 
   Widget _performanceStatsView(bool isDarkMode, BuildContext context) {
-    final summaryCards = <_SummaryCardData>[
-      _SummaryCardData(
+    final summaryCards = <SummaryCardData>[
+      SummaryCardData(
         label: 'WINS',
         value: '14',
         valueColor: const Color(0xFF0AA66A),
         lightBackground: const Color(0xFFEAF8F2),
         darkBackground: const Color(0xFF112B22),
       ),
-      _SummaryCardData(
+      SummaryCardData(
         label: 'LOSSES',
         value: '5',
         valueColor: const Color(0xFFFF4B55),
         lightBackground: const Color(0xFFFDEEF1),
         darkBackground: const Color(0xFF321A1E),
       ),
-      _SummaryCardData(
+      SummaryCardData(
         label: 'NET P&L',
         value: '+6,200',
         valueColor: const Color(0xFFC89000),
@@ -598,7 +791,9 @@ class AnalysisTab extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.only(top: 4),
+      color: isDarkMode ? const Color(0xFF0D110F) : Colors.white,
+
+      padding: const EdgeInsets.only(top: 8, bottom: 8, left: 16, right: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -663,49 +858,17 @@ class AnalysisTab extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Row(
-            children:
-                summaryCards.map((item) {
-                  final index = summaryCards.indexOf(item);
-                  return Expanded(
-                    child: Padding(
-                      padding: EdgeInsets.only(
-                        right: index == summaryCards.length - 1 ? 0 : 10,
-                      ),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        decoration: BoxDecoration(
-                          color:
-                              isDarkMode
-                                  ? item.darkBackground
-                                  : item.lightBackground,
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              item.label,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w500,
-                                color: item.valueColor,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              item.value,
-                              style: TextStyle(
-                                fontSize: 28,
-                                fontWeight: FontWeight.w500,
-                                color: item.valueColor,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  );
-                }).toList(),
+            children: List.generate(summaryCards.length, (index) {
+              return Padding(
+                padding: EdgeInsets.only(
+                  right: index == summaryCards.length - 1 ? 0 : 8,
+                ),
+                child: _summaryCard(
+                  item: summaryCards[index],
+                  isDarkMode: isDarkMode,
+                ),
+              );
+            }),
           ),
           const SizedBox(height: 20),
           GridView.builder(
@@ -767,27 +930,12 @@ class AnalysisTab extends StatelessWidget {
     return Align(
       alignment: Alignment.center,
       child: Container(
+        padding: const EdgeInsets.only(top: 8, bottom: 8, left: 16, right: 16),
+
         width: 390,
         height: 298,
-        padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
         decoration: BoxDecoration(
           color: isDarkMode ? const Color(0xFF0D110F) : Colors.white,
-          border: Border(
-            top: BorderSide(
-              color:
-                  isDarkMode
-                      ? const Color(0xFF202220)
-                      : const Color(0xFFF2F2F2),
-              width: 1,
-            ),
-            bottom: BorderSide(
-              color:
-                  isDarkMode
-                      ? const Color(0xFF202220)
-                      : const Color(0xFFF2F2F2),
-              width: 1,
-            ),
-          ),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -806,7 +954,7 @@ class AnalysisTab extends StatelessWidget {
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
+                    horizontal: 12,
                     vertical: 8,
                   ),
                   decoration: BoxDecoration(
@@ -828,7 +976,7 @@ class AnalysisTab extends StatelessWidget {
                       Text(
                         'Daily',
                         style: TextStyle(
-                          fontSize: 16,
+                          fontSize: 14,
                           fontWeight: FontWeight.w500,
                           color:
                               isDarkMode
@@ -850,105 +998,195 @@ class AnalysisTab extends StatelessWidget {
             ),
             const SizedBox(height: 14),
             Expanded(
-              child: SfCartesianChart(
-                plotAreaBorderWidth: 0,
-                margin: const EdgeInsets.fromLTRB(8, 4, 8, 0),
-                enableSideBySideSeriesPlacement: true,
-                legend: Legend(
-                  isVisible: true,
-                  position: LegendPosition.bottom,
-                  alignment: ChartAlignment.center,
-                  itemPadding: 20,
-                  iconWidth: 10,
-                  iconHeight: 10,
-                  textStyle: TextStyle(
-                    fontSize: 14,
-                    color:
-                        isDarkMode
-                            ? const Color(0xFFB7C0CF)
-                            : const Color(0xFF7F8CA1),
-                  ),
-                ),
-                primaryXAxis: CategoryAxis(
-                  majorGridLines: const MajorGridLines(width: 0),
-                  majorTickLines: const MajorTickLines(size: 0),
-                  axisLine: const AxisLine(width: 1, color: Color(0xFFEEF1F5)),
-                  labelStyle: TextStyle(
-                    fontSize: 13,
-                    color:
-                        isDarkMode
-                            ? const Color(0xFF9AA3B2)
-                            : const Color(0xFF8A93A3),
-                  ),
-                ),
-                // nTangle - Keep winning trades on the primary axis to preserve the left-side scale.
-                primaryYAxis: NumericAxis(
-                  minimum: 0,
-                  maximum: 18,
-                  interval: 3,
-                  axisLine: const AxisLine(width: 0),
-                  majorTickLines: const MajorTickLines(size: 0),
-                  majorGridLines: MajorGridLines(
-                    width: 1,
-                    color:
-                        isDarkMode
-                            ? const Color(0xFF243029)
-                            : const Color(0xFFEFF2F6),
-                  ),
-                  labelStyle: TextStyle(
-                    fontSize: 11,
-                    color:
-                        isDarkMode
-                            ? const Color(0xFF9AA3B2)
-                            : const Color(0xFF8A93A3),
-                  ),
-                ),
-                axes: <ChartAxis>[
-                  // nTangle - Use a second Y-axis for losing trades to satisfy a true multi-axis chart setup.
-                  NumericAxis(
-                    name: 'losingAxis',
-                    minimum: 0,
-                    maximum: 18,
-                    interval: 3,
-                    opposedPosition: true,
-                    isVisible: false,
-                  ),
-                ],
-                series: <CartesianSeries<_PerformancePoint, String>>[
-                  ColumnSeries<_PerformancePoint, String>(
-                    name: 'Winning Trades',
-                    dataSource: chartData,
-                    xValueMapper: (_PerformancePoint point, _) => point.day,
-                    yValueMapper:
-                        (_PerformancePoint point, _) => point.winningTrades,
-                    color: const Color(0xFF2EBD85),
-                    width: 0.32,
-                    spacing: 0.14,
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(6),
-                      topRight: Radius.circular(6),
+              child: Column(
+                children: [
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
+                      child: BarChart(
+                        BarChartData(
+                          minY: 0,
+                          maxY: 18,
+                          barTouchData: BarTouchData(enabled: false),
+                          alignment: BarChartAlignment.spaceAround,
+                          gridData: FlGridData(
+                            show: true,
+                            drawVerticalLine: false,
+                            horizontalInterval: 3,
+                            getDrawingHorizontalLine:
+                                (_) => FlLine(
+                                  color:
+                                      isDarkMode
+                                          ? const Color(0xFF243029)
+                                          : const Color(0xFFEFF2F6),
+                                  strokeWidth: 1,
+                                ),
+                          ),
+                          borderData: FlBorderData(
+                            show: true,
+                            border: Border(
+                              bottom: BorderSide(
+                                color:
+                                    isDarkMode
+                                        ? const Color(0xFF243029)
+                                        : const Color(0xFFEEF1F5),
+                                width: 1,
+                              ),
+                              left: const BorderSide(color: Colors.transparent),
+                              right: const BorderSide(
+                                color: Colors.transparent,
+                              ),
+                              top: const BorderSide(color: Colors.transparent),
+                            ),
+                          ),
+                          titlesData: FlTitlesData(
+                            topTitles: const AxisTitles(
+                              sideTitles: SideTitles(showTitles: false),
+                            ),
+                            rightTitles: const AxisTitles(
+                              sideTitles: SideTitles(showTitles: false),
+                            ),
+                            leftTitles: AxisTitles(
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                interval: 3,
+                                reservedSize: 24,
+                                getTitlesWidget:
+                                    (value, meta) => Text(
+                                      value.toInt().toString(),
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color:
+                                            isDarkMode
+                                                ? const Color(0xFF9AA3B2)
+                                                : const Color(0xFF8A93A3),
+                                      ),
+                                    ),
+                              ),
+                            ),
+                            bottomTitles: AxisTitles(
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                getTitlesWidget: (value, meta) {
+                                  final index = value.toInt();
+                                  if (index < 0 || index >= chartData.length) {
+                                    return const SizedBox.shrink();
+                                  }
+                                  return Padding(
+                                    padding: const EdgeInsets.only(top: 8),
+                                    child: Text(
+                                      chartData[index].day,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color:
+                                            isDarkMode
+                                                ? const Color(0xFF9AA3B2)
+                                                : const Color(0xFF8A93A3),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+                          barGroups: List.generate(chartData.length, (index) {
+                            final point = chartData[index];
+                            return BarChartGroupData(
+                              x: index,
+                              barsSpace: 6,
+                              barRods: [
+                                BarChartRodData(
+                                  toY: point.winningTrades,
+                                  width: 12,
+                                  borderRadius: const BorderRadius.only(
+                                    topLeft: Radius.circular(6),
+                                    topRight: Radius.circular(6),
+                                  ),
+                                  color: const Color(0xFF2EBD85),
+                                ),
+                                BarChartRodData(
+                                  toY: point.losingTrades,
+                                  width: 12,
+                                  borderRadius: const BorderRadius.only(
+                                    topLeft: Radius.circular(6),
+                                    topRight: Radius.circular(6),
+                                  ),
+                                  color: const Color(0xFFF6465D),
+                                ),
+                              ],
+                            );
+                          }),
+                        ),
+                      ),
                     ),
                   ),
-                  ColumnSeries<_PerformancePoint, String>(
-                    name: 'Losing Trades',
-                    dataSource: chartData,
-                    xValueMapper: (_PerformancePoint point, _) => point.day,
-                    yValueMapper:
-                        (_PerformancePoint point, _) => point.losingTrades,
-                    yAxisName: 'losingAxis',
-                    color: const Color(0xFFF6465D),
-                    width: 0.32,
-                    spacing: 0.14,
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(6),
-                      topRight: Radius.circular(6),
-                    ),
+                  const SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _chartLegendItem(
+                        label: 'Winning Trades',
+                        color: const Color(0xFF2EBD85),
+                        isDarkMode: isDarkMode,
+                      ),
+                      const SizedBox(width: 20),
+                      _chartLegendItem(
+                        label: 'Losing Trades',
+                        color: const Color(0xFFF6465D),
+                        isDarkMode: isDarkMode,
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _summaryCard({
+    required SummaryCardData item,
+    required bool isDarkMode,
+  }) {
+    return Container(
+      width: 108.66667938232422,
+      height: 71,
+      padding: const EdgeInsets.only(top: 16, bottom: 16),
+      decoration: BoxDecoration(
+        color: isDarkMode ? item.darkBackground : item.lightBackground,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            item.label.toUpperCase(),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 10,
+              fontWeight: FontWeight.w400,
+              height: 1,
+              letterSpacing: 0,
+              color: item.valueColor,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            item.value,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              height: 1,
+              letterSpacing: 0,
+              color: item.valueColor,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -966,20 +1204,32 @@ class _PerformancePoint {
   });
 }
 
-class _SummaryCardData {
-  final String label;
-  final String value;
-  final Color valueColor;
-  final Color lightBackground;
-  final Color darkBackground;
-
-  const _SummaryCardData({
-    required this.label,
-    required this.value,
-    required this.valueColor,
-    required this.lightBackground,
-    required this.darkBackground,
-  });
+Widget _chartLegendItem({
+  required String label,
+  required Color color,
+  required bool isDarkMode,
+}) {
+  return Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Container(
+        width: 10,
+        height: 10,
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(2),
+        ),
+      ),
+      const SizedBox(width: 8),
+      Text(
+        label,
+        style: TextStyle(
+          fontSize: 14,
+          color: isDarkMode ? const Color(0xFFB7C0CF) : const Color(0xFF7F8CA1),
+        ),
+      ),
+    ],
+  );
 }
 
 class _StatData {
@@ -990,14 +1240,7 @@ class _StatData {
   const _StatData({required this.label, required this.value, this.valueColor});
 }
 
-enum _TradeDayStatus { win, loss, none, outsideMonth }
-
-class _TradeCalendarDayData {
-  final String day;
-  final _TradeDayStatus status;
-
-  const _TradeCalendarDayData({required this.day, required this.status});
-}
+enum _TradeDayStatus { win, loss, none, future, outsideMonth }
 
 class _CalendarLegendDot extends StatelessWidget {
   final Color color;
@@ -1011,12 +1254,9 @@ class _CalendarLegendDot extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 12,
-          height: 12,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(2),
-          ),
+          width: 16,
+          height: 16,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 6),
         Text(

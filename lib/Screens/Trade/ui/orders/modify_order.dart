@@ -47,7 +47,7 @@ class ModifyOrderPage extends StatelessWidget {
           children: [
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(8, 10, 8, 16),
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -460,13 +460,26 @@ class ModifyOrderPage extends StatelessWidget {
       },
       style: OutlinedButton.styleFrom(
         minimumSize: const Size.fromHeight(36),
+        backgroundColor:
+            selected ? const Color(0xFFFFF8E1) : Colors.transparent,
         side: BorderSide(
           color: selected ? const Color(0xFFF2C400) : borderColor,
         ),
         foregroundColor: selected ? const Color(0xFFB38D00) : titleColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
-      child: Text(type),
+      child: Text(
+        type,
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontFamily: 'Inter',
+          fontWeight: FontWeight.w500,
+          fontSize: 10,
+          height: 1,
+          letterSpacing: 0,
+          color: selected ? const Color(0xFFB38D00) : titleColor,
+        ),
+      ),
     );
   }
 

@@ -119,11 +119,22 @@ class OrderDetailsPage extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            Text(
-                              '2:56 GST',
-                              style: NerveStyles.tradeDetailsOrderDateStyle(
-                                mutedColor,
-                              ),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.access_time_rounded,
+                                  size: 14,
+                                  color: mutedColor,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '2:56 GST',
+                                  style: NerveStyles.tradeDetailsOrderDateStyle(
+                                    mutedColor,
+                                  ),
+                                ),
+                              ],
                             ),
                             const Spacer(),
                             InkWell(
@@ -217,19 +228,12 @@ class OrderDetailsPage extends StatelessWidget {
                             Expanded(
                               child: _metric(
                                 'B/S',
-                                'Buy',
+                                'Buy ',
                                 mutedColor,
                                 positiveColor,
                               ),
                             ),
-                            Expanded(
-                              child: _metric(
-                                'Type',
-                                order.type,
-                                mutedColor,
-                                titleColor,
-                              ),
-                            ),
+                            const SizedBox(width: 8),
                             Expanded(
                               child: _metric(
                                 'Units',
@@ -238,28 +242,14 @@ class OrderDetailsPage extends StatelessWidget {
                                 titleColor,
                               ),
                             ),
+                            const SizedBox(width: 8),
                             Expanded(
                               child: _metric(
                                 'Price',
                                 '164.68',
                                 mutedColor,
                                 titleColor,
-                              ),
-                            ),
-                            Expanded(
-                              child: _metric(
-                                'Stop Loss',
-                                '158.00',
-                                mutedColor,
-                                const Color(0xFFFF5A5A),
-                              ),
-                            ),
-                            Expanded(
-                              child: _metric(
-                                'Take Profit',
-                                '172.00',
-                                mutedColor,
-                                positiveColor,
+                                textAlign: TextAlign.end,
                               ),
                             ),
                           ],
@@ -282,18 +272,24 @@ class OrderDetailsPage extends StatelessWidget {
     String label,
     String value,
     Color labelColor,
-    Color valueColor,
-  ) {
+    Color valueColor, {
+    TextAlign textAlign = TextAlign.start,
+  }) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment:
+          textAlign == TextAlign.end
+              ? CrossAxisAlignment.end
+              : CrossAxisAlignment.start,
       children: [
         Text(
           label,
+          textAlign: textAlign,
           style: NerveStyles.tradePositionMetricLabelStyle(labelColor),
         ),
         const SizedBox(height: 6),
         Text(
           value,
+          textAlign: textAlign,
           style: NerveStyles.tradeDetailsOrderBuyValueStyle(valueColor),
         ),
       ],

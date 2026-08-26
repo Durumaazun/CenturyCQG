@@ -121,26 +121,44 @@ class ExecutionPage extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: _metric('B/S', item.side, mutedColor, positiveColor),
-              ),
-              Expanded(
-                child: _metric('Units', item.units, mutedColor, titleColor),
-              ),
-              Expanded(
-                child: _metric('Amount', item.amount, mutedColor, titleColor),
-              ),
-              Expanded(
-                child: _metric(
-                  'Profit',
-                  item.profit,
-                  mutedColor,
-                  positiveColor,
-                ),
-              ),
-            ],
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final columnWidth = (constraints.maxWidth - 24) / 4;
+              return Row(
+                children: [
+                  SizedBox(
+                    width: columnWidth,
+                    child: _metric('B/S', item.side, mutedColor, positiveColor),
+                  ),
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    width: columnWidth,
+                    child: _metric('Units', item.units, mutedColor, titleColor),
+                  ),
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    width: columnWidth,
+                    child: _metric(
+                      'Amount',
+                      item.amount,
+                      mutedColor,
+                      titleColor,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    width: columnWidth,
+                    child: _metric(
+                      'Profit',
+                      item.profit,
+                      mutedColor,
+                      positiveColor,
+                      textAlign: TextAlign.end,
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
         ],
       ),
@@ -151,18 +169,24 @@ class ExecutionPage extends StatelessWidget {
     String label,
     String value,
     Color labelColor,
-    Color valueColor,
-  ) {
+    Color valueColor, {
+    TextAlign textAlign = TextAlign.start,
+  }) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment:
+          textAlign == TextAlign.end
+              ? CrossAxisAlignment.end
+              : CrossAxisAlignment.start,
       children: [
         Text(
           label,
+          textAlign: textAlign,
           style: NerveStyles.tradePositionMetricLabelStyle(labelColor),
         ),
         const SizedBox(height: 5),
         Text(
           value,
+          textAlign: textAlign,
           style: NerveStyles.tradeDetailsOrderBuyValueStyle(valueColor),
         ),
       ],

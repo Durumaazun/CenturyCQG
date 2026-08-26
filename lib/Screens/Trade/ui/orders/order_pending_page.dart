@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import 'package:century_cqg/Helper/nerve_base.dart';
 import 'package:century_cqg/Helper/nerve_styles.dart';
@@ -122,7 +123,7 @@ class OrderPendingPage extends StatelessWidget {
                         color: cardColor,
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      margin: const EdgeInsets.symmetric(horizontal: 24),
+                      margin: const EdgeInsets.symmetric(horizontal: 16),
                       padding: const EdgeInsets.symmetric(
                         horizontal: 12,
                         vertical: 10,
@@ -219,30 +220,46 @@ class OrderPendingPage extends StatelessWidget {
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Padding(
-                            padding: EdgeInsets.only(top: 1),
-                            child: Icon(
-                              Icons.info_outline,
-                              size: 14,
-                              color: Color(0xFFF2C400),
-                            ),
+                          SvgPicture.asset(
+                            'lib/Resources/Images/info_img.svg',
+                            width: 22,
+                            height: 22,
                           ),
                           const SizedBox(width: 8),
                           Expanded(
-                            child: Text(
-                              'You can track your order status in the Orders tab.',
-                              style: TextStyle(
-                                fontFamily: 'Inter',
-                                fontSize: 11,
-                                fontWeight: FontWeight.w400,
-                                color: mutedColor,
+                            child: RichText(
+                              text: TextSpan(
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w400,
+                                  color: const Color(0xFF364153),
+                                ),
+                                children: [
+                                  const TextSpan(
+                                    text:
+                                        'You can track your order status in the ',
+                                  ),
+                                  TextSpan(
+                                    text: 'Orders',
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      height: 19.5 / 12,
+                                      letterSpacing: 0,
+                                      color: const Color(0xFF364153),
+                                    ),
+                                  ),
+                                  const TextSpan(text: ' tab.'),
+                                ],
                               ),
                             ),
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 20),
                     Text(
                       '23 Sep 2022   •   3:26 PM GST',
                       style: NerveStyles.tradeDetailsOrderDateStyle(mutedColor),

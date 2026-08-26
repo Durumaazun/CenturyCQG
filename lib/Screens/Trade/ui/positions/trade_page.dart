@@ -9,6 +9,7 @@ import 'package:century_cqg/Screens/Trade/service/trade_page_service.dart';
 import 'package:century_cqg/Screens/Trade/ui/positions/position_symbol_details.dart';
 import 'package:century_cqg/Screens/Trade/ui/orders/order_details.dart';
 import 'package:century_cqg/Screens/Trade/service/trade_service.dart';
+import 'package:century_cqg/Screens/Dashboard/service/dasboard_service.dart';
 
 class TradePage extends StatefulWidget {
   final int initialTabIndex;
@@ -24,8 +25,8 @@ class _TradePageState extends State<TradePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer2<TradeService, TradePageService>(
-      builder: (context, tradeService, tradePageService, _) {
+    return Consumer3<TradeService, TradePageService, DashboardService>(
+      builder: (context, tradeService, tradePageService, dashboardService, _) {
         if (!_didInitTabIndex) {
           _didInitTabIndex = true;
           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -39,7 +40,6 @@ class _TradePageState extends State<TradePage> {
         }
 
         final isDarkMode = NerveBase().isDarkMode;
-        final cardColor = isDarkMode ? const Color(0xFF1E2120) : Colors.white;
         final borderColor =
             isDarkMode ? const Color(0xFF282D2A) : const Color(0xFFE7EAE8);
         final titleColor = isDarkMode ? Colors.white : const Color(0xFF2A2A2A);
@@ -81,7 +81,9 @@ class _TradePageState extends State<TradePage> {
                             child: Text(
                               tabs[index],
                               style: NerveStyles.tradeTabLabelStyle(
-                                isSelected ? titleColor : subtitleColor,
+                                isSelected
+                                    ? const Color(0xB2000000)
+                                    : const Color(0xFF7F7F7F),
                               ),
                             ),
                           ),
@@ -105,7 +107,25 @@ class _TradePageState extends State<TradePage> {
                 child: Padding(
                   padding: EdgeInsets.only(top: 10, bottom: 10),
                   child: Container(
-                    color: cardColor,
+                    decoration: BoxDecoration(
+                      color: contentBg,
+                      border: Border(
+                        top: BorderSide(
+                          color:
+                              isDarkMode
+                                  ? const Color(0xFF1C211E)
+                                  : borderColor,
+                          width: 1,
+                        ),
+                        bottom: BorderSide(
+                          color:
+                              isDarkMode
+                                  ? const Color(0xFF1C211E)
+                                  : borderColor,
+                          width: 1,
+                        ),
+                      ),
+                    ),
                     child: SingleChildScrollView(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -388,24 +408,24 @@ class _TradePageState extends State<TradePage> {
                 ),
               )
             else if (selectedTabIndex == 1)
-              const Expanded(
+              Expanded(
                 child: Padding(
                   padding: EdgeInsets.only(top: 10, bottom: 10),
-                  child: OrderDetailsPage(),
+                  child: OrderDetailsPage(key: ValueKey(isDarkMode)),
                 ),
               )
             else if (selectedTabIndex == 2)
-              const Expanded(
+              Expanded(
                 child: Padding(
                   padding: EdgeInsets.only(top: 10, bottom: 10),
-                  child: HoldingPage(),
+                  child: HoldingPage(key: ValueKey(isDarkMode)),
                 ),
               )
             else if (selectedTabIndex == 3)
-              const Expanded(
+              Expanded(
                 child: Padding(
                   padding: EdgeInsets.only(top: 10, bottom: 10),
-                  child: HistoryPage(),
+                  child: HistoryPage(key: ValueKey(isDarkMode)),
                 ),
               )
             else

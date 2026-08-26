@@ -9,6 +9,7 @@ class HistoryItem {
   final String status;
   final String units;
   final String price;
+  final String profit;
   final String stopLoss;
   final String takeProfit;
   final String iconText;
@@ -23,6 +24,7 @@ class HistoryItem {
     required this.status,
     required this.units,
     required this.price,
+    required this.profit,
     required this.stopLoss,
     required this.takeProfit,
     required this.iconText,

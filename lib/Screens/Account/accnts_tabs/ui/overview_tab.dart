@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:provider/provider.dart';
-import 'package:syncfusion_flutter_charts/charts.dart';
 import 'package:century_cqg/Helper/nerve_styles.dart';
 import 'package:century_cqg/Helper/nerve_colors.dart';
 import 'package:century_cqg/Screens/Account/service/account_service.dart';
@@ -21,10 +21,11 @@ class OverviewTab extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               portfolioView(isDarkMode, proValue),
-              const SizedBox(height: 18),
+              const SizedBox(height: 12),
               topPositionView(isDarkMode, proValue),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               allocationView(isDarkMode, proValue),
+              const SizedBox(height: 12),
             ],
             // ),
             //],
@@ -106,81 +107,60 @@ class OverviewTab extends StatelessWidget {
           const SizedBox(height: 6),
           Container(
             height: 120,
-            decoration: BoxDecoration(
-              //  color: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              // border: Border.all(
-              //   color: NerveColors.containerBorderColor,
-              //   width: 1,
-              // ),
-            ),
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 10),
-              child: SfCartesianChart(
-                margin: EdgeInsets.zero,
-                plotAreaBorderWidth: 0,
-                primaryXAxis: NumericAxis(
-                  isVisible: false,
-                  majorGridLines: const MajorGridLines(width: 0),
-                  axisLine: const AxisLine(width: 0),
+              child: LineChart(
+                LineChartData(
+                  minX: 0,
+                  maxX: 6,
+                  minY: 36,
+                  maxY: 54,
+                  lineTouchData: const LineTouchData(enabled: false),
+                  titlesData: const FlTitlesData(show: false),
+                  gridData: const FlGridData(show: false),
+                  borderData: FlBorderData(show: false),
+                  lineBarsData: [
+                    LineChartBarData(
+                      spots: const [
+                        FlSpot(0, 39),
+                        FlSpot(1, 45),
+                        FlSpot(2, 43),
+                        FlSpot(3, 49),
+                        FlSpot(4, 47),
+                        FlSpot(5, 52),
+                        FlSpot(6, 50),
+                      ],
+                      isCurved: true,
+                      color: const Color(0xFF2EBD85),
+                      barWidth: 2,
+                      dotData: const FlDotData(show: false),
+                      belowBarData: BarAreaData(
+                        show: true,
+                        gradient:
+                            isDarkMode
+                                ? const LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    Color.fromARGB(255, 69, 117, 70),
+                                    Color.fromARGB(68, 64, 129, 88),
+                                    Color(0x0022C55E),
+                                  ],
+                                )
+                                : const LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    Color.fromARGB(102, 139, 205, 163),
+                                    Color.fromARGB(97, 197, 244, 213),
+                                    Color.fromARGB(0, 235, 239, 237),
+                                  ],
+                                ),
+                      ),
+                    ),
+                  ],
                 ),
-                primaryYAxis: NumericAxis(
-                  isVisible: false,
-                  majorGridLines: const MajorGridLines(width: 0),
-                  axisLine: const AxisLine(width: 0),
-                ),
-                series: <CartesianSeries<_PortfolioPoint, num>>[
-                  AreaSeries<_PortfolioPoint, num>(
-                    dataSource: const [
-                      _PortfolioPoint(0, 38),
-                      _PortfolioPoint(1, 45),
-                      _PortfolioPoint(2, 43),
-                      _PortfolioPoint(3, 49),
-                      _PortfolioPoint(4, 47),
-                      _PortfolioPoint(5, 52),
-                      _PortfolioPoint(6, 50),
-                    ],
-                    xValueMapper: (_PortfolioPoint p, _) => p.x,
-                    yValueMapper: (_PortfolioPoint p, _) => p.y,
-                    gradient:
-                        isDarkMode
-                            ? const LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                Color.fromARGB(255, 69, 117, 70),
-                                //   Color.fromARGB(170, 18, 213, 125),
-                                Color.fromARGB(68, 64, 129, 88),
-                                Color(0x0022C55E),
-                              ],
-                            )
-                            : const LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                Color.fromARGB(102, 139, 205, 163),
-                                Color.fromARGB(97, 197, 244, 213),
-                                Color.fromARGB(0, 235, 239, 237),
-                              ],
-                            ),
-                    borderWidth: 0,
-                  ),
-                  LineSeries<_PortfolioPoint, num>(
-                    dataSource: const [
-                      _PortfolioPoint(0, 39),
-                      _PortfolioPoint(1, 45),
-                      _PortfolioPoint(2, 43),
-                      _PortfolioPoint(3, 49),
-                      _PortfolioPoint(4, 47),
-                      _PortfolioPoint(5, 52),
-                      _PortfolioPoint(6, 50),
-                    ],
-                    xValueMapper: (_PortfolioPoint p, _) => p.x,
-                    yValueMapper: (_PortfolioPoint p, _) => p.y,
-                    color: const Color(0xFF2EBD85),
-                    width: 2,
-                  ),
-                ],
               ),
             ),
           ),
@@ -226,51 +206,30 @@ class OverviewTab extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 26),
-          GridView.count(
-            crossAxisCount: 3,
-            shrinkWrap: true,
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 10,
-            childAspectRatio: 1.6,
-            children: [
-              _MetricCard(
-                isDarkMode: isDarkMode,
-                label: 'Account Value',
-                value: '\$67,504.34',
-              ),
-              _MetricCard(
-                isDarkMode: isDarkMode,
-                label: 'Invested Value',
-                value: '\$63,504',
-              ),
-              _MetricCard(
-                isDarkMode: isDarkMode,
-                label: 'Available',
-                value: '570.79',
-              ),
-              _MetricCard(
-                isDarkMode: isDarkMode,
-                label: 'Total PnL',
-                value: '+557.07',
-                valueColor: Colors.green,
-              ),
-              _MetricCard(
-                isDarkMode: isDarkMode,
-                label: 'Day PnL',
-                value: '-57.56',
-                valueColor: Colors.red,
-              ),
-              _MetricCard(
-                isDarkMode: isDarkMode,
-                label: 'Cash',
-                value: '257.07',
-              ),
-            ],
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _compactMetricCard(
+                    isDarkMode: isDarkMode,
+                    label: 'Available',
+                    value: '570.79',
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _compactMetricCard(
+                    isDarkMode: isDarkMode,
+                    label: 'Cash',
+                    value: '257.07',
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 12),
+
+          const SizedBox(height: 24),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Column(
@@ -356,15 +315,41 @@ class OverviewTab extends StatelessWidget {
     );
   }
 
+  Widget _compactMetricCard({
+    required bool isDarkMode,
+    required String label,
+    required String value,
+  }) {
+    final borderColor =
+        isDarkMode ? const Color(0xFF282D2A) : NerveColors.containerBorderColor;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: isDarkMode ? const Color(0xFF0D110F) : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: borderColor, width: 1),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: NerveStyles.black_regular_12(isDarkMode)),
+          Text(
+            value,
+            style: NerveStyles.black_bold_14(
+              isDarkMode,
+            ).copyWith(color: isDarkMode ? Colors.white : Colors.black87),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget topPositionView(bool isDarkMode, AccountService proValue) {
     return Container(
-      padding: const EdgeInsets.all(12),
-
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color:
-            isDarkMode
-                ? const Color(0xFF0D110F)
-                : NerveColors.scaffoldBackgroundColor(isDarkMode),
+        color: NerveColors.primaryColor(isDarkMode),
         border: Border(
           top: BorderSide(
             color:
@@ -393,7 +378,14 @@ class OverviewTab extends StatelessWidget {
               children: [
                 Text(
                   'Top Positions',
-                  style: NerveStyles.black_medium_14_400(isDarkMode),
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w500,
+                    fontSize: 14,
+                    height: 1,
+                    letterSpacing: 0,
+                    color: isDarkMode ? Colors.white : Colors.black87,
+                  ),
                 ),
                 Text('Show All', style: NerveStyles.blue_bold_12(isDarkMode)),
               ],
@@ -402,14 +394,12 @@ class OverviewTab extends StatelessWidget {
             ListView.builder(
               physics: const NeverScrollableScrollPhysics(),
               shrinkWrap: true,
-              padding: EdgeInsets.zero,
               itemCount: proValue.positions.length,
               itemBuilder: (context, index) {
                 final item = proValue.positions[index];
                 return Container(
                   padding: const EdgeInsets.only(top: 8, bottom: 8),
                   decoration: BoxDecoration(
-                    color: isDarkMode ? const Color(0xFF0D110F) : Colors.white,
                     border: Border(
                       bottom: BorderSide(
                         color:
@@ -428,6 +418,7 @@ class OverviewTab extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Wrap(
+                            crossAxisAlignment: WrapCrossAlignment.center,
                             children: [
                               Text(
                                 item.ticker,
@@ -460,22 +451,24 @@ class OverviewTab extends StatelessWidget {
                             ],
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
                             decoration: BoxDecoration(
                               color:
                                   isDarkMode
-                                      ? const Color(0xFF0D110F)
-                                      : const Color(0xFFEAF7F0),
+                                      ? NerveColors.chartbgGreenDark
+                                      : NerveColors.chartbgGreenLigth,
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: SvgPicture.asset(
                               'lib/Resources/Images/line_chart.svg',
-                              width: 150,
+                              width: 120,
                               height: 22,
+                              fit: BoxFit.contain,
                             ),
                           ),
                           Text(
                             '+ ${item.profit.toStringAsFixed(2)}',
+                            textAlign: TextAlign.end,
                             style: TextStyle(
                               color:
                                   isDarkMode
@@ -492,7 +485,8 @@ class OverviewTab extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'Qty: ${item.qty}',
+                            'Qty: ${item.qty.toStringAsFixed(2).padLeft(6, '0')}',
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               color:
                                   isDarkMode ? Colors.grey[200] : Colors.grey,
@@ -500,7 +494,8 @@ class OverviewTab extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            'Avg: ${item.avgPrice.toStringAsFixed(2).padLeft(8, '0')}',
+                            'Avg: ${item.avgPrice.toStringAsFixed(2).padLeft(6, '0')}',
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               color:
                                   isDarkMode ? Colors.grey[200] : Colors.grey,
@@ -508,7 +503,8 @@ class OverviewTab extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            'LTP: ${item.ltp.toStringAsFixed(2)}',
+                            'LTP: ${item.ltp.toStringAsFixed(2).padLeft(6, '0')}',
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               color:
                                   isDarkMode ? Colors.grey[200] : Colors.grey,
@@ -529,13 +525,13 @@ class OverviewTab extends StatelessWidget {
   }
 
   Widget allocationView(bool isDarkMode, AccountService proValue) {
+    final dividerColor =
+        isDarkMode ? const Color(0xFF202220) : NerveColors.containerBorderColor;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color:
-            isDarkMode
-                ? const Color(0xFF0D110F)
-                : NerveColors.scaffoldBackgroundColor(isDarkMode),
+        color: NerveColors.primaryColor(isDarkMode),
         border: Border(
           top: BorderSide(
             color:
@@ -554,7 +550,7 @@ class OverviewTab extends StatelessWidget {
         ),
       ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 18, 16, 8),
+        padding: const EdgeInsets.all(8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -563,7 +559,14 @@ class OverviewTab extends StatelessWidget {
               children: [
                 Text(
                   'Allocation',
-                  style: NerveStyles.black_medium_14_500(isDarkMode),
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w500,
+                    fontSize: 14,
+                    height: 1,
+                    letterSpacing: 0,
+                    color: isDarkMode ? Colors.white : Colors.black87,
+                  ),
                 ),
                 Text('Show All', style: NerveStyles.blue_bold_12(isDarkMode)),
               ],
@@ -593,10 +596,7 @@ class OverviewTab extends StatelessWidget {
               padding: EdgeInsets.zero,
               itemCount: proValue.allocations.length,
               separatorBuilder:
-                  (context, index) => Divider(
-                    color: NerveColors.containerBorderColor,
-                    height: 22,
-                  ),
+                  (context, index) => Divider(color: dividerColor, height: 22),
               itemBuilder: (context, index) {
                 final item = proValue.allocations[index];
                 return _allocationRow(
@@ -610,7 +610,7 @@ class OverviewTab extends StatelessWidget {
                 );
               },
             ),
-            Divider(color: NerveColors.containerBorderColor, height: 22),
+            Divider(color: dividerColor, height: 22),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -804,11 +804,4 @@ class _MetricCard extends StatelessWidget {
       ),
     );
   }
-}
-
-class _PortfolioPoint {
-  final num x;
-  final num y;
-
-  const _PortfolioPoint(this.x, this.y);
 }
