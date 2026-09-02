@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:table_calendar/table_calendar.dart';
-import 'package:century_cqg/Helper/nerve_styles.dart';
-import 'package:century_cqg/Helper/nerve_colors.dart';
 import 'package:century_cqg/Helper/nerve_base.dart';
 import 'package:century_cqg/Screens/Account/model/account_model.dart';
 
@@ -1240,7 +1238,7 @@ class _StatData {
   const _StatData({required this.label, required this.value, this.valueColor});
 }
 
-enum _TradeDayStatus { win, loss, none, future, outsideMonth }
+enum _TradeDayStatus { win, loss, none, future }
 
 class _CalendarLegendDot extends StatelessWidget {
   final Color color;

@@ -1,3 +1,4 @@
+import 'package:century_cqg/Screens/Trade/model/order_item_model.dart';
 import 'package:flutter/material.dart';
 
 import 'package:century_cqg/Helper/nerve_base.dart';
@@ -20,8 +21,8 @@ class OrderDetailsPage extends StatelessWidget {
         isDarkMode ? const Color(0xFF8F9793) : const Color(0xFF7A817D);
     final positiveColor = const Color(0xFF00C389);
 
-    const orders = <_OrderItem>[
-      _OrderItem(
+    const orders = <OrderItem>[
+      OrderItem(
         symbol: 'AAPL',
         iconText: 'A',
         iconBg: Color(0xFF111111),
@@ -29,7 +30,7 @@ class OrderDetailsPage extends StatelessWidget {
         tag1: '',
         tag2: '',
       ),
-      _OrderItem(
+      OrderItem(
         symbol: 'TSLA',
         iconText: 'T',
         iconBg: Color(0xFFE82127),
@@ -37,7 +38,7 @@ class OrderDetailsPage extends StatelessWidget {
         tag1: '',
         tag2: '',
       ),
-      _OrderItem(
+      OrderItem(
         symbol: 'TSLA 4500',
         iconText: 'T',
         iconBg: Color(0xFFE82127),
@@ -45,7 +46,7 @@ class OrderDetailsPage extends StatelessWidget {
         tag1: 'Call',
         tag2: '30 Jun',
       ),
-      _OrderItem(
+      OrderItem(
         symbol: 'TSLA 4500',
         iconText: 'N',
         iconBg: Color(0xFF6BAF2A),
@@ -139,10 +140,7 @@ class OrderDetailsPage extends StatelessWidget {
                             const Spacer(),
                             InkWell(
                               onTap: () {
-                                _showCancelOrderBottomSheet(
-                                  context,
-                                  isDarkMode,
-                                );
+                                showCancelOrderBottomSheet(context, isDarkMode);
                               },
                               borderRadius: BorderRadius.circular(10),
                               child: Container(
@@ -192,7 +190,7 @@ class OrderDetailsPage extends StatelessWidget {
                             ),
                             if (order.tag1.isNotEmpty) ...[
                               const SizedBox(width: 8),
-                              _pill(
+                              pillWidget(
                                 order.tag1,
                                 const Color(0xFFD7ECFF),
                                 const Color(0xFF3E6DA9),
@@ -200,7 +198,7 @@ class OrderDetailsPage extends StatelessWidget {
                             ],
                             if (order.tag2.isNotEmpty) ...[
                               const SizedBox(width: 6),
-                              _pill(
+                              pillWidget(
                                 order.tag2,
                                 const Color(0xFFFFDDE2),
                                 const Color(0xFFB04D5A),
@@ -226,7 +224,7 @@ class OrderDetailsPage extends StatelessWidget {
                         Row(
                           children: [
                             Expanded(
-                              child: _metric(
+                              child: metricWidget(
                                 'B/S',
                                 'Buy ',
                                 mutedColor,
@@ -235,7 +233,7 @@ class OrderDetailsPage extends StatelessWidget {
                             ),
                             const SizedBox(width: 8),
                             Expanded(
-                              child: _metric(
+                              child: metricWidget(
                                 'Units',
                                 '200',
                                 mutedColor,
@@ -244,7 +242,7 @@ class OrderDetailsPage extends StatelessWidget {
                             ),
                             const SizedBox(width: 8),
                             Expanded(
-                              child: _metric(
+                              child: metricWidget(
                                 'Price',
                                 '164.68',
                                 mutedColor,
@@ -268,7 +266,7 @@ class OrderDetailsPage extends StatelessWidget {
     );
   }
 
-  Widget _metric(
+  Widget metricWidget(
     String label,
     String value,
     Color labelColor,
@@ -296,7 +294,7 @@ class OrderDetailsPage extends StatelessWidget {
     );
   }
 
-  Widget _pill(String text, Color bg, Color fg) {
+  Widget pillWidget(String text, Color bg, Color fg) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
@@ -315,7 +313,7 @@ class OrderDetailsPage extends StatelessWidget {
     );
   }
 
-  void _showCancelOrderBottomSheet(BuildContext context, bool isDarkMode) {
+  void showCancelOrderBottomSheet(BuildContext context, bool isDarkMode) {
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
@@ -452,22 +450,4 @@ class OrderDetailsPage extends StatelessWidget {
       },
     );
   }
-}
-
-class _OrderItem {
-  final String symbol;
-  final String iconText;
-  final Color iconBg;
-  final String type;
-  final String tag1;
-  final String tag2;
-
-  const _OrderItem({
-    required this.symbol,
-    required this.iconText,
-    required this.iconBg,
-    required this.type,
-    required this.tag1,
-    required this.tag2,
-  });
 }

@@ -765,13 +765,11 @@ class _MetricCard extends StatelessWidget {
   final bool isDarkMode;
   final String label;
   final String value;
-  final Color? valueColor;
 
   const _MetricCard({
     required this.isDarkMode,
     required this.label,
     required this.value,
-    this.valueColor,
   });
 
   @override
@@ -794,9 +792,7 @@ class _MetricCard extends StatelessWidget {
           ),
           Text(
             value,
-            style: NerveStyles.black_bold_14(isDarkMode).copyWith(
-              color: valueColor ?? (isDarkMode ? Colors.white : Colors.black87),
-            ),
+            style: NerveStyles.black_bold_14(isDarkMode),
             // maxLines: 1,
             // overflow: TextOverflow.ellipsis,
           ),

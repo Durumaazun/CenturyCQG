@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import 'package:century_cqg/Helper/nerve_colors.dart';
+import 'package:century_cqg/Screens/OptionChain/ui/option_chain_page.dart'
+    as oc;
 import '../service/search_service.dart';
 
 class SearchPage extends StatelessWidget {
@@ -219,12 +221,32 @@ class SearchPage extends StatelessWidget {
                                             crossAxisAlignment:
                                                 CrossAxisAlignment.start,
                                             children: [
-                                              Text(
-                                                result.symbol,
-                                                style: const TextStyle(
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Colors.black,
+                                              GestureDetector(
+                                                onTap: () {
+                                                  Navigator.of(context).push(
+                                                    MaterialPageRoute(
+                                                      builder:
+                                                          (_) =>
+                                                              oc.OptionChainPage(
+                                                                symbol:
+                                                                    result
+                                                                        .symbol,
+                                                              ),
+                                                    ),
+                                                  );
+                                                },
+                                                child: Text(
+                                                  result.symbol,
+                                                  style: const TextStyle(
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Colors.black,
+                                                    decoration:
+                                                        TextDecoration
+                                                            .underline,
+                                                    decorationColor:
+                                                        Colors.blue,
+                                                  ),
                                                 ),
                                               ),
                                               const SizedBox(height: 4),
@@ -309,6 +331,30 @@ class SearchPage extends StatelessWidget {
                                               ),
                                             ),
                                             const SizedBox(width: 4),
+                                            IconButton(
+                                              icon: const Icon(
+                                                Icons.show_chart,
+                                                color: Colors.grey,
+                                                size: 20,
+                                              ),
+                                              padding: EdgeInsets.zero,
+                                              constraints: const BoxConstraints(
+                                                minWidth: 24,
+                                              ),
+                                              tooltip: 'View Option Chain',
+                                              onPressed: () {
+                                                Navigator.of(context).push(
+                                                  MaterialPageRoute(
+                                                    builder:
+                                                        (_) =>
+                                                            oc.OptionChainPage(
+                                                              symbol:
+                                                                  result.symbol,
+                                                            ),
+                                                  ),
+                                                );
+                                              },
+                                            ),
                                             IconButton(
                                               icon: Icon(
                                                 result.isFavorite

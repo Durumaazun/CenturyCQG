@@ -211,7 +211,6 @@ class _SectionRow extends StatelessWidget {
   final Widget? trailing;
   final bool showChevron;
   final Color? backgroundColor;
-  final VoidCallback? onTap;
 
   const _SectionRow({
     required this.title,
@@ -219,46 +218,41 @@ class _SectionRow extends StatelessWidget {
     this.trailing,
     this.showChevron = true,
     this.backgroundColor,
-    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(18),
-      child: Container(
-        decoration: BoxDecoration(
-          color: backgroundColor,
-          borderRadius: BorderRadius.circular(18),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  title,
-                  style: TextStyle(
-                    color: rowTextColor,
-                    fontFamily: 'Inter',
-                    fontSize: 14,
-                    fontWeight: FontWeight.w400,
-                    height: 1,
-                    letterSpacing: 0,
-                  ),
+    return Container(
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  color: rowTextColor,
+                  fontFamily: 'Inter',
+                  fontSize: 14,
+                  fontWeight: FontWeight.w400,
+                  height: 1,
+                  letterSpacing: 0,
                 ),
               ),
-              if (trailing != null)
-                trailing!
-              else if (showChevron)
-                Icon(
-                  Icons.chevron_right,
-                  color: rowTextColor.withOpacity(0.5),
-                  size: 24,
-                ),
-            ],
-          ),
+            ),
+            if (trailing != null)
+              trailing!
+            else if (showChevron)
+              Icon(
+                Icons.chevron_right,
+                color: rowTextColor.withOpacity(0.5),
+                size: 24,
+              ),
+          ],
         ),
       ),
     );

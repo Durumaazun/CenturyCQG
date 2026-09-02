@@ -88,8 +88,6 @@ class _SettingsListTile extends StatelessWidget {
   final IconData icon;
   final bool isLogout;
   final VoidCallback? onTap;
-  final Widget? trailing;
-  final bool showChevron;
 
   const _SettingsListTile({
     required this.isDarkMode,
@@ -99,8 +97,6 @@ class _SettingsListTile extends StatelessWidget {
     required this.icon,
     this.isLogout = false,
     this.onTap,
-    this.trailing,
-    this.showChevron = true,
   });
 
   @override
@@ -158,14 +154,11 @@ class _SettingsListTile extends StatelessWidget {
                   ).copyWith(color: titleColor),
                 ),
               ),
-              if (trailing != null)
-                trailing!
-              else if (showChevron)
-                Icon(
-                  Icons.chevron_right,
-                  size: 22,
-                  color: isDarkMode ? Colors.grey[400] : Colors.grey[500],
-                ),
+              Icon(
+                Icons.chevron_right,
+                size: 22,
+                color: isDarkMode ? Colors.grey[400] : Colors.grey[500],
+              ),
             ],
           ),
         ),

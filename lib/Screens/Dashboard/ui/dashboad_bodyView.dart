@@ -1,3 +1,4 @@
+import 'package:century_cqg/Screens/Account/accnts_tabs/ui/stock_details_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
@@ -165,7 +166,17 @@ class DashboardBodyView extends StatelessWidget {
               separatorBuilder: (context, index) => const SizedBox(width: 16),
               itemBuilder: (context, index) {
                 return GestureDetector(
-                  onTap: () {},
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder:
+                            (context) => StockDetailsPage.fromStockItem(
+                              proValue.stocks[index],
+                            ),
+                      ),
+                    );
+                  },
                   child: stockCard(
                     stock: proValue.stocks[index],
                     isDarkMode: isDarkMode,
@@ -705,7 +716,15 @@ class DashboardBodyView extends StatelessWidget {
               final isPositive = stock.percentageChange >= 0;
 
               return GestureDetector(
-                onTap: () {},
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder:
+                          (context) => StockDetailsPage.fromStockItem(stock),
+                    ),
+                  );
+                },
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
