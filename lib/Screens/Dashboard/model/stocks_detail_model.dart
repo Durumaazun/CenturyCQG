@@ -23,3 +23,4 @@ class StockItem {
     required this.sparklinePoints,
   });
 }
+

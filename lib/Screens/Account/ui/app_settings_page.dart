@@ -56,7 +56,7 @@ class AppSettingsPage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _SettingsSection(
+                  SettingsSection(
                     title: 'Profile',
                     titleColor: subtitleColor,
                     cardColor: cardColor,
@@ -69,7 +69,7 @@ class AppSettingsPage extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 18),
-                  _SettingsSection(
+                  SettingsSection(
                     title: 'Trading',
                     titleColor: subtitleColor,
                     cardColor: cardColor,
@@ -82,7 +82,7 @@ class AppSettingsPage extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 18),
-                  _SettingsSection(
+                  SettingsSection(
                     title: 'Notifications',
                     titleColor: subtitleColor,
                     cardColor: cardColor,
@@ -95,14 +95,14 @@ class AppSettingsPage extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 18),
-                  _SettingsSection(
+                  SettingsSection(
                     title: 'Appearance',
                     titleColor: subtitleColor,
                     cardColor: cardColor,
                     borderColor: borderColor,
                     rowTextColor: rowTextColor,
                     rows: [
-                      _SectionRow(
+                      SectionRow(
                         title: 'Dark Mode',
                         rowTextColor: rowTextColor,
                         backgroundColor: appearanceRowBg,
@@ -129,16 +129,16 @@ class AppSettingsPage extends StatelessWidget {
   }
 }
 
-class _SettingsSection extends StatelessWidget {
+class SettingsSection extends StatelessWidget {
   final String title;
   final Color titleColor;
   final Color cardColor;
   final Color borderColor;
   final Color rowTextColor;
   final List<String> items;
-  final List<_SectionRow>? rows;
+  final List<SectionRow>? rows;
 
-  const _SettingsSection({
+  const SettingsSection({
     required this.title,
     required this.titleColor,
     required this.cardColor,
@@ -198,21 +198,21 @@ class _SettingsSection extends StatelessWidget {
     );
   }
 
-  List<_SectionRow> _rowsFromItems() {
+  List<SectionRow> _rowsFromItems() {
     return items
-        .map((title) => _SectionRow(title: title, rowTextColor: rowTextColor))
+        .map((title) => SectionRow(title: title, rowTextColor: rowTextColor))
         .toList();
   }
 }
 
-class _SectionRow extends StatelessWidget {
+class SectionRow extends StatelessWidget {
   final String title;
   final Color rowTextColor;
   final Widget? trailing;
   final bool showChevron;
   final Color? backgroundColor;
 
-  const _SectionRow({
+  const SectionRow({
     required this.title,
     required this.rowTextColor,
     this.trailing,
@@ -258,3 +258,4 @@ class _SectionRow extends StatelessWidget {
     );
   }
 }
+

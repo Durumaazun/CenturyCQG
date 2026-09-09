@@ -9,3 +9,4 @@ class TradeSummary {
     required this.todaysOrders,
   });
 }
+

@@ -77,3 +77,4 @@ class AccountService extends ChangeNotifier {
 
   String get allocationTotalValue => '\$67,700,000';
 }
+

@@ -1,3 +1,4 @@
+import 'package:century_cqg/Screens/Scalper/ui/scalper_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
@@ -17,10 +18,10 @@ class MobileHomePage extends StatefulWidget {
   const MobileHomePage({super.key});
 
   @override
-  State<MobileHomePage> createState() => _MobileHomePageState();
+  State<MobileHomePage> createState() => MobileHomePageState();
 }
 
-class _MobileHomePageState extends State<MobileHomePage> {
+class MobileHomePageState extends State<MobileHomePage> {
   final List<String> _tabNames = [
     'Home',
     'Watchlists',
@@ -29,7 +30,11 @@ class _MobileHomePageState extends State<MobileHomePage> {
     'Scalper',
   ];
 
-  Widget _buildPageContent(bool isDarkMode, int selectedIndex) {
+  Widget _buildPageContent(
+    bool isDarkMode,
+    int selectedIndex,
+    DashboardService dashboardService,
+  ) {
     if (selectedIndex == 0) {
       return DashboardBodyView();
     } else if (selectedIndex == 1) {
@@ -37,7 +42,11 @@ class _MobileHomePageState extends State<MobileHomePage> {
     } else if (selectedIndex == 2) {
       return AccountPage();
     } else if (selectedIndex == 3) {
-      return const TradePage();
+      final initialTab = dashboardService.isFromDetails ? 1 : 0;
+
+      return TradePage(initialTabIndex: initialTab);
+    } else if (selectedIndex == 4) {
+      return ScalperPage();
     } else {
       return Center(
         child: Text(
@@ -96,7 +105,7 @@ class _MobileHomePageState extends State<MobileHomePage> {
                         isDarkMode
                             ? const Color(0xFF0D110F)
                             : NerveColors.solidWhiteColor,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -178,7 +187,9 @@ class _MobileHomePageState extends State<MobileHomePage> {
                     color:
                         isDarkMode ? const Color(0xFF282D2A) : Colors.grey[300],
                   ),
-                if (selectedIndex != 2 && selectedIndex != 3)
+                if (selectedIndex != 1 &&
+                    selectedIndex != 2 &&
+                    selectedIndex != 3)
                   Container(height: 8, color: bgColor),
                 Expanded(
                   child:
@@ -198,7 +209,11 @@ class _MobileHomePageState extends State<MobileHomePage> {
                               Container(height: 8, color: bgColor),
                             ],
                           )
-                          : _buildPageContent(isDarkMode, selectedIndex),
+                          : _buildPageContent(
+                            isDarkMode,
+                            selectedIndex,
+                            dashboardService,
+                          ),
                 ),
               ],
             ),

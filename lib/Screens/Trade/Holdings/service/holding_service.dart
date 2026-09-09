@@ -41,3 +41,4 @@ class HoldingService extends ChangeNotifier {
 
   List<HoldingItem> get holdings => List.unmodifiable(_holdings);
 }
+

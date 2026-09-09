@@ -8,36 +8,36 @@ class AnalysisTab extends StatefulWidget {
   const AnalysisTab({super.key});
 
   @override
-  State<AnalysisTab> createState() => _AnalysisTabState();
+  State<AnalysisTab> createState() => AnalysisTabState();
 }
 
-class _AnalysisTabState extends State<AnalysisTab> {
-  static final DateTime _firstCalendarMonth = DateTime(2020, 1, 1);
-  static final DateTime _lastCalendarMonth = DateTime(2030, 12, 1);
-  DateTime _focusedDay = DateTime(DateTime.now().year, DateTime.now().month, 1);
+class AnalysisTabState extends State<AnalysisTab> {
+  static final DateTime firstCalendarMonth = DateTime(2020, 1, 1);
+  static final DateTime lastCalendarMonth = DateTime(2030, 12, 1);
+  DateTime focusedDay = DateTime(DateTime.now().year, DateTime.now().month, 1);
 
-  bool _isAfterToday(DateTime day) {
+  bool isAfterToday(DateTime day) {
     final today = DateTime.now();
     return day.isAfter(DateTime(today.year, today.month, today.day));
   }
 
-  _TradeDayStatus _statusForDay(DateTime day) {
-    if (_isAfterToday(day)) {
-      return _TradeDayStatus.future;
+  TradeDayStatus statusForDay(DateTime day) {
+    if (isAfterToday(day)) {
+      return TradeDayStatus.future;
     }
 
     final seed = day.year * 10000 + day.month * 100 + day.day;
     switch (seed % 3) {
       case 0:
-        return _TradeDayStatus.win;
+        return TradeDayStatus.win;
       case 1:
-        return _TradeDayStatus.loss;
+        return TradeDayStatus.loss;
       default:
-        return _TradeDayStatus.none;
+        return TradeDayStatus.none;
     }
   }
 
-  String _monthName(int month) {
+  String monthName(int month) {
     const monthNames = [
       'Jan',
       'Feb',
@@ -55,9 +55,9 @@ class _AnalysisTabState extends State<AnalysisTab> {
     return monthNames[month - 1];
   }
 
-  Future<void> _selectMonthAndYear(bool isDarkMode) async {
-    var selectedYear = _focusedDay.year;
-    var selectedMonth = _focusedDay.month;
+  Future<void> selectMonthAndYear(bool isDarkMode) async {
+    var selectedYear = focusedDay.year;
+    var selectedMonth = focusedDay.month;
 
     await showDialog<void>(
       context: context,
@@ -85,7 +85,7 @@ class _AnalysisTabState extends State<AnalysisTab> {
                         12,
                         (index) => DropdownMenuItem(
                           value: index + 1,
-                          child: Text(_monthName(index + 1)),
+                          child: Text(monthName(index + 1)),
                         ),
                       ),
                       onChanged: (month) {
@@ -104,8 +104,8 @@ class _AnalysisTabState extends State<AnalysisTab> {
                       style: TextStyle(color: textColor),
                       items: [
                         for (
-                          var year = _firstCalendarMonth.year;
-                          year <= _lastCalendarMonth.year;
+                          var year = firstCalendarMonth.year;
+                          year <= lastCalendarMonth.year;
                           year++
                         )
                           DropdownMenuItem(
@@ -130,7 +130,7 @@ class _AnalysisTabState extends State<AnalysisTab> {
                 TextButton(
                   onPressed: () {
                     setState(() {
-                      _focusedDay = DateTime(selectedYear, selectedMonth, 1);
+                      focusedDay = DateTime(selectedYear, selectedMonth, 1);
                     });
                     Navigator.pop(dialogContext);
                   },
@@ -144,7 +144,7 @@ class _AnalysisTabState extends State<AnalysisTab> {
     );
   }
 
-  Future<void> _showPerformanceFilterBottomSheet(
+  Future<void> showPerformanceFilterBottomSheet(
     BuildContext context,
     bool isDarkMode,
   ) async {
@@ -245,7 +245,7 @@ class _AnalysisTabState extends State<AnalysisTab> {
                                 (index) {
                                   final isSelected =
                                       selectedMarketImpact == index;
-                                  return _filterChip(
+                                  return filterChip(
                                     label: marketImpactOptions[index],
                                     isSelected: isSelected,
                                     isDarkMode: isDarkMode,
@@ -276,7 +276,7 @@ class _AnalysisTabState extends State<AnalysisTab> {
                                 index,
                               ) {
                                 final isSelected = selectedTime == index;
-                                return _filterChip(
+                                return filterChip(
                                   label: timeOptions[index],
                                   isSelected: isSelected,
                                   isDarkMode: isDarkMode,
@@ -364,7 +364,7 @@ class _AnalysisTabState extends State<AnalysisTab> {
     }
   }
 
-  Widget _filterChip({
+  Widget filterChip({
     required String label,
     required bool isSelected,
     required bool isDarkMode,
@@ -403,17 +403,17 @@ class _AnalysisTabState extends State<AnalysisTab> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _performanceChartView(isDarkMode),
+        performanceChartView(isDarkMode),
         const SizedBox(height: 12),
 
-        _performanceStatsView(isDarkMode, context),
+        performanceStatsView(isDarkMode, context),
         const SizedBox(height: 12),
-        _tradesCalendarView(isDarkMode),
+        tradesCalendarView(isDarkMode),
       ],
     );
   }
 
-  Widget _tradesCalendarView(bool isDarkMode) {
+  Widget tradesCalendarView(bool isDarkMode) {
     final weekDays = const ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
     return Container(
@@ -453,15 +453,15 @@ class _AnalysisTabState extends State<AnalysisTab> {
               ),
               Row(
                 children: [
-                  _calendarNavButton(
+                  calendarNavButton(
                     icon: Icons.chevron_left_rounded,
                     isDarkMode: isDarkMode,
-                    isEnabled: _focusedDay.isAfter(_firstCalendarMonth),
+                    isEnabled: focusedDay.isAfter(firstCalendarMonth),
                     onTap: () {
                       setState(() {
-                        _focusedDay = DateTime(
-                          _focusedDay.year,
-                          _focusedDay.month - 1,
+                        focusedDay = DateTime(
+                          focusedDay.year,
+                          focusedDay.month - 1,
                           1,
                         );
                       });
@@ -469,7 +469,7 @@ class _AnalysisTabState extends State<AnalysisTab> {
                   ),
                   const SizedBox(width: 10),
                   InkWell(
-                    onTap: () => _selectMonthAndYear(isDarkMode),
+                    onTap: () => selectMonthAndYear(isDarkMode),
                     borderRadius: BorderRadius.circular(8),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
@@ -477,7 +477,7 @@ class _AnalysisTabState extends State<AnalysisTab> {
                         vertical: 6,
                       ),
                       child: Text(
-                        '${_monthName(_focusedDay.month)} ${_focusedDay.year}',
+                        '${monthName(focusedDay.month)} ${focusedDay.year}',
                         style: TextStyle(
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.w500,
@@ -493,15 +493,15 @@ class _AnalysisTabState extends State<AnalysisTab> {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  _calendarNavButton(
+                  calendarNavButton(
                     icon: Icons.chevron_right_rounded,
                     isDarkMode: isDarkMode,
-                    isEnabled: _focusedDay.isBefore(_lastCalendarMonth),
+                    isEnabled: focusedDay.isBefore(lastCalendarMonth),
                     onTap: () {
                       setState(() {
-                        _focusedDay = DateTime(
-                          _focusedDay.year,
-                          _focusedDay.month + 1,
+                        focusedDay = DateTime(
+                          focusedDay.year,
+                          focusedDay.month + 1,
                           1,
                         );
                       });
@@ -542,7 +542,7 @@ class _AnalysisTabState extends State<AnalysisTab> {
           TableCalendar<void>(
             firstDay: DateTime(2020),
             lastDay: DateTime(2030, 12, 31),
-            focusedDay: _focusedDay,
+            focusedDay: focusedDay,
             startingDayOfWeek: StartingDayOfWeek.monday,
             headerVisible: false,
             daysOfWeekVisible: false,
@@ -557,18 +557,18 @@ class _AnalysisTabState extends State<AnalysisTab> {
               defaultBuilder:
                   (context, day, focusedDay) => Padding(
                     padding: const EdgeInsets.all(4),
-                    child: _calendarDayCell(
+                    child: calendarDayCell(
                       day: day,
-                      status: _statusForDay(day),
+                      status: statusForDay(day),
                       isDarkMode: isDarkMode,
                     ),
                   ),
               todayBuilder:
                   (context, day, focusedDay) => Padding(
                     padding: const EdgeInsets.all(4),
-                    child: _calendarDayCell(
+                    child: calendarDayCell(
                       day: day,
-                      status: _statusForDay(day),
+                      status: statusForDay(day),
                       isDarkMode: isDarkMode,
                       isToday: true,
                     ),
@@ -576,7 +576,7 @@ class _AnalysisTabState extends State<AnalysisTab> {
               outsideBuilder:
                   (context, day, focusedDay) => Padding(
                     padding: const EdgeInsets.all(4),
-                    child: _calendarDayCell(
+                    child: calendarDayCell(
                       day: day,
                       status: null,
                       isDarkMode: isDarkMode,
@@ -584,9 +584,9 @@ class _AnalysisTabState extends State<AnalysisTab> {
                     ),
                   ),
             ),
-            onPageChanged: (focusedDay) {
+            onPageChanged: (focusedDayParam) {
               setState(() {
-                _focusedDay = focusedDay;
+                focusedDay = focusedDayParam;
               });
             },
           ),
@@ -596,12 +596,9 @@ class _AnalysisTabState extends State<AnalysisTab> {
             spacing: 20,
             runSpacing: 10,
             children: const [
-              _CalendarLegendDot(
-                color: Color(0xFF20A16F),
-                label: 'Winning day',
-              ),
-              _CalendarLegendDot(color: Color(0xFFF6465D), label: 'Losing day'),
-              _CalendarLegendDot(color: Color(0xFFE8EAF0), label: 'No trades'),
+              CalendarLegendDot(color: Color(0xFF20A16F), label: 'Winning day'),
+              CalendarLegendDot(color: Color(0xFFF6465D), label: 'Losing day'),
+              CalendarLegendDot(color: Color(0xFFE8EAF0), label: 'No trades'),
             ],
           ),
         ],
@@ -609,7 +606,7 @@ class _AnalysisTabState extends State<AnalysisTab> {
     );
   }
 
-  Widget _calendarNavButton({
+  Widget calendarNavButton({
     required IconData icon,
     required bool isDarkMode,
     required bool isEnabled,
@@ -651,17 +648,17 @@ class _AnalysisTabState extends State<AnalysisTab> {
     );
   }
 
-  Widget _calendarDayCell({
+  Widget calendarDayCell({
     required DateTime day,
-    required _TradeDayStatus? status,
+    required TradeDayStatus? status,
     required bool isDarkMode,
     bool isOutside = false,
     bool isToday = false,
   }) {
-    final isWin = status == _TradeDayStatus.win;
-    final isLoss = status == _TradeDayStatus.loss;
-    final isNoTrade = status == _TradeDayStatus.none;
-    final isFuture = status == _TradeDayStatus.future;
+    final isWin = status == TradeDayStatus.win;
+    final isLoss = status == TradeDayStatus.loss;
+    final isNoTrade = status == TradeDayStatus.none;
+    final isFuture = status == TradeDayStatus.future;
 
     final backgroundColor =
         isToday
@@ -721,7 +718,7 @@ class _AnalysisTabState extends State<AnalysisTab> {
     );
   }
 
-  Widget _performanceStatsView(bool isDarkMode, BuildContext context) {
+  Widget performanceStatsView(bool isDarkMode, BuildContext context) {
     final summaryCards = <SummaryCardData>[
       SummaryCardData(
         label: 'WINS',
@@ -746,45 +743,45 @@ class _AnalysisTabState extends State<AnalysisTab> {
       ),
     ];
 
-    final stats = <_StatData>[
-      _StatData(
+    final stats = <StatData>[
+      StatData(
         label: 'Net Profit',
         value: '6,200.83',
         valueColor: const Color(0xFF0AA66A),
       ),
-      _StatData(label: 'Profit Factor', value: '1.67'),
-      _StatData(label: 'Max Balance Drawdown', value: '20.92%'),
-      _StatData(
+      StatData(label: 'Profit Factor', value: '1.67'),
+      StatData(label: 'Max Balance Drawdown', value: '20.92%'),
+      StatData(
         label: 'Commission',
         value: '-13.74',
         valueColor: const Color(0xFFFF4B55),
       ),
-      _StatData(label: 'Total Trades', value: '19'),
-      _StatData(label: 'Average Trade', value: '326.36'),
-      _StatData(
+      StatData(label: 'Total Trades', value: '19'),
+      StatData(label: 'Average Trade', value: '326.36'),
+      StatData(
         label: 'Largest Winning Trade',
         value: '6,551.00',
         valueColor: const Color(0xFF0AA66A),
       ),
-      _StatData(
+      StatData(
         label: 'Winning Trades',
         value: '14',
         valueColor: const Color(0xFF0AA66A),
       ),
-      _StatData(
+      StatData(
         label: 'Losing Trades',
         value: '5',
         valueColor: const Color(0xFFFF4B55),
       ),
-      _StatData(
+      StatData(
         label: 'Largest Losing Trade',
         value: '-3,576.00',
         valueColor: const Color(0xFFFF4B55),
       ),
-      _StatData(label: 'Total Pips Won', value: '893.18'),
-      _StatData(label: 'Avg. Pips Won per Trade', value: '47.01'),
-      _StatData(label: 'Avg. Trade Duration', value: '2h 6m 45s'),
-      _StatData(label: 'USD Volume Traded', value: '16m'),
+      StatData(label: 'Total Pips Won', value: '893.18'),
+      StatData(label: 'Avg. Pips Won per Trade', value: '47.01'),
+      StatData(label: 'Avg. Trade Duration', value: '2h 6m 45s'),
+      StatData(label: 'USD Volume Traded', value: '16m'),
     ];
 
     return Container(
@@ -826,7 +823,7 @@ class _AnalysisTabState extends State<AnalysisTab> {
               ),
               InkWell(
                 onTap: () {
-                  _showPerformanceFilterBottomSheet(context, isDarkMode);
+                  showPerformanceFilterBottomSheet(context, isDarkMode);
                 },
                 borderRadius: BorderRadius.circular(20),
                 child: Container(
@@ -861,7 +858,7 @@ class _AnalysisTabState extends State<AnalysisTab> {
                 padding: EdgeInsets.only(
                   right: index == summaryCards.length - 1 ? 0 : 8,
                 ),
-                child: _summaryCard(
+                child: summaryCard(
                   item: summaryCards[index],
                   isDarkMode: isDarkMode,
                 ),
@@ -916,13 +913,13 @@ class _AnalysisTabState extends State<AnalysisTab> {
     );
   }
 
-  Widget _performanceChartView(bool isDarkMode) {
-    final chartData = <_PerformancePoint>[
-      _PerformancePoint(day: 'Mon', winningTrades: 5, losingTrades: 5),
-      _PerformancePoint(day: 'Tue', winningTrades: 7, losingTrades: 7),
-      _PerformancePoint(day: 'Wed', winningTrades: 16, losingTrades: 16),
-      _PerformancePoint(day: 'Thu', winningTrades: 7, losingTrades: 7),
-      _PerformancePoint(day: 'Fri', winningTrades: 5, losingTrades: 5),
+  Widget performanceChartView(bool isDarkMode) {
+    final chartData = <PerformancePoint>[
+      PerformancePoint(day: 'Mon', winningTrades: 5, losingTrades: 5),
+      PerformancePoint(day: 'Tue', winningTrades: 7, losingTrades: 7),
+      PerformancePoint(day: 'Wed', winningTrades: 16, losingTrades: 16),
+      PerformancePoint(day: 'Thu', winningTrades: 7, losingTrades: 7),
+      PerformancePoint(day: 'Fri', winningTrades: 5, losingTrades: 5),
     ];
 
     return Align(
@@ -1144,7 +1141,7 @@ class _AnalysisTabState extends State<AnalysisTab> {
     );
   }
 
-  Widget _summaryCard({
+  Widget summaryCard({
     required SummaryCardData item,
     required bool isDarkMode,
   }) {
@@ -1190,12 +1187,12 @@ class _AnalysisTabState extends State<AnalysisTab> {
   }
 }
 
-class _PerformancePoint {
+class PerformancePoint {
   final String day;
   final double winningTrades;
   final double losingTrades;
 
-  const _PerformancePoint({
+  const PerformancePoint({
     required this.day,
     required this.winningTrades,
     required this.losingTrades,
@@ -1230,21 +1227,25 @@ Widget _chartLegendItem({
   );
 }
 
-class _StatData {
+class StatData {
   final String label;
   final String value;
   final Color? valueColor;
 
-  const _StatData({required this.label, required this.value, this.valueColor});
+  const StatData({required this.label, required this.value, this.valueColor});
 }
 
-enum _TradeDayStatus { win, loss, none, future }
+enum TradeDayStatus { win, loss, none, future }
 
-class _CalendarLegendDot extends StatelessWidget {
+class CalendarLegendDot extends StatelessWidget {
   final Color color;
   final String label;
 
-  const _CalendarLegendDot({required this.color, required this.label});
+  const CalendarLegendDot({
+    super.key,
+    required this.color,
+    required this.label,
+  });
 
   @override
   Widget build(BuildContext context) {

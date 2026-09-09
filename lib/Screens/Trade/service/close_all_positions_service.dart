@@ -82,3 +82,4 @@ class CloseAllPositionsService extends ChangeNotifier {
     notifyListeners();
   }
 }
+

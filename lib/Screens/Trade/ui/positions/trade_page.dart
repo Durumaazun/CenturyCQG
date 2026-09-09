@@ -24,6 +24,20 @@ class _TradePageState extends State<TradePage> {
   bool _didInitTabIndex = false;
 
   @override
+  void didUpdateWidget(TradePage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialTabIndex != widget.initialTabIndex) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          context.read<TradePageService>().setSelectedTabIndex(
+            widget.initialTabIndex,
+          );
+        }
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Consumer3<TradeService, TradePageService, DashboardService>(
       builder: (context, tradeService, tradePageService, dashboardService, _) {

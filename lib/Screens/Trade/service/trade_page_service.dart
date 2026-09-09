@@ -85,3 +85,4 @@ class TradePageService extends ChangeNotifier {
     notifyListeners();
   }
 }
+

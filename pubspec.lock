@@ -33,6 +33,15 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.4.0"
+  chart_package:
+    dependency: "direct main"
+    description:
+      path: chart_package
+      ref: f426976486cdce07e391d3128cc50a0ecb2ff5bf
+      resolved-ref: f426976486cdce07e391d3128cc50a0ecb2ff5bf
+      url: "https://github.com/nervesolutions/Flutter-Chart-Package.git"
+    source: git
+    version: "1.0.0"
   clock:
     dependency: transitive
     description:
@@ -57,6 +66,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.0.7"
+  csv:
+    dependency: transitive
+    description:
+      name: csv
+      sha256: "63ed2871dd6471193dffc52c0e6c76fb86269c00244d244297abbb355c84a86e"
+      url: "https://pub.dev"
+    source: hosted
+    version: "5.1.1"
   cupertino_icons:
     dependency: "direct main"
     description:
@@ -65,6 +82,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.8"
+  dropdown_button2:
+    dependency: transitive
+    description:
+      name: dropdown_button2
+      sha256: b0fe8d49a030315e9eef6c7ac84ca964250155a6224d491c1365061bc974a9e1
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.3.9"
   equatable:
     dependency: transitive
     description:
@@ -312,6 +337,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "6.1.5+1"
+  scrollable_positioned_list:
+    dependency: transitive
+    description:
+      name: scrollable_positioned_list
+      sha256: "1b54d5f1329a1e263269abc9e2543d90806131aa14fe7c6062a8054d57249287"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.3.8"
   shared_preferences:
     dependency: "direct main"
     description:

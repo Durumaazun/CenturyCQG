@@ -112,3 +112,4 @@ class OptionData {
   String toString() =>
       'OptionData(strike: $strikePrice, type: $type, lastPrice: $lastPrice)';
 }
+

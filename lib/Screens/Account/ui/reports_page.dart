@@ -16,20 +16,20 @@ class ReportsPage extends StatelessWidget {
     final sectionColor =
         isDarkMode ? const Color(0xFFB5B5B5) : const Color(0xFF8F8F8F);
 
-    final sections = <_ReportSectionData>[
-      const _ReportSectionData(
+    final sections = <ReportSectionData>[
+      const ReportSectionData(
         title: 'Profit & Loss',
         items: ['Stocks P&L', 'F&O P&L', 'Dividend Report'],
       ),
-      const _ReportSectionData(
+      const ReportSectionData(
         title: 'Tax',
         items: ['Stocks Capital Gains', 'F&O Tax Report'],
       ),
-      const _ReportSectionData(
+      const ReportSectionData(
         title: 'Holdings',
         items: ['Stocks - Holdings Statement'],
       ),
-      const _ReportSectionData(
+      const ReportSectionData(
         title: 'Transactions',
         items: ['Stocks - Order History', 'Balance Statement', 'Contract Note'],
       ),
@@ -70,7 +70,7 @@ class ReportsPage extends StatelessWidget {
                     .map(
                       (section) => Padding(
                         padding: const EdgeInsets.only(bottom: 18),
-                        child: _ReportsSection(
+                        child: ReportsSection(
                           section: section,
                           sectionColor: sectionColor,
                           cardColor: cardColor,
@@ -87,14 +87,15 @@ class ReportsPage extends StatelessWidget {
   }
 }
 
-class _ReportsSection extends StatelessWidget {
-  final _ReportSectionData section;
+class ReportsSection extends StatelessWidget {
+  final ReportSectionData section;
   final Color sectionColor;
   final Color cardColor;
   final Color borderColor;
   final Color rowTextColor;
 
-  const _ReportsSection({
+  const ReportsSection({
+    super.key,
     required this.section,
     required this.sectionColor,
     required this.cardColor,
@@ -183,9 +184,9 @@ class _ReportsSection extends StatelessWidget {
   }
 }
 
-class _ReportSectionData {
+class ReportSectionData {
   final String title;
   final List<String> items;
 
-  const _ReportSectionData({required this.title, required this.items});
+  const ReportSectionData({required this.title, required this.items});
 }

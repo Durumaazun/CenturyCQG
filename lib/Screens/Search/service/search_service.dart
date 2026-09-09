@@ -213,3 +213,4 @@ class SearchService extends ChangeNotifier {
     super.dispose();
   }
 }
+

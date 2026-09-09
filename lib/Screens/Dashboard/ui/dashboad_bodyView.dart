@@ -1190,3 +1190,4 @@ class SparklinePainter extends CustomPainter {
   bool shouldRepaint(covariant SparklinePainter oldDelegate) =>
       oldDelegate.points != points || oldDelegate.lineColor != lineColor;
 }
+

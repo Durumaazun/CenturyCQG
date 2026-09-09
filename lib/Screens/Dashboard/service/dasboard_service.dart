@@ -6,8 +6,12 @@ import 'package:century_cqg/Helper/nerve_base.dart';
 
 class DashboardService extends ChangeNotifier {
   int _selectedHomeTabIndex = 0;
+  int _initialTradeTabIndex = 0;
+  bool _isFromDetails = false;
 
   int get selectedHomeTabIndex => _selectedHomeTabIndex;
+  int get initialTradeTabIndex => _initialTradeTabIndex;
+  bool get isFromDetails => _isFromDetails;
 
   void setSelectedHomeTabIndex(int index) {
     if (_selectedHomeTabIndex == index) {
@@ -15,6 +19,24 @@ class DashboardService extends ChangeNotifier {
     }
     _selectedHomeTabIndex = index;
     notifyListeners();
+  }
+
+  void setInitialTradeTabIndex(int index) {
+    _initialTradeTabIndex = index;
+    notifyListeners();
+  }
+
+  void setIsFromDetails(bool value) {
+    _isFromDetails = value;
+    notifyListeners();
+  }
+
+  void resetInitialTradeTabIndex() {
+    _initialTradeTabIndex = 0;
+  }
+
+  void resetIsFromDetails() {
+    _isFromDetails = false;
   }
 
   late AccountSummary _accountSummary;

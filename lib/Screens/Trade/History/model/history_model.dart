@@ -31,3 +31,4 @@ class HistoryItem {
     required this.iconColor,
   });
 }
+

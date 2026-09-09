@@ -1,8 +1,12 @@
+import 'package:century_cqg/Screens/Dashboard/service/dasboard_service.dart';
+import 'package:century_cqg/Screens/Trade/service/trade_page_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:provider/provider.dart';
 
 import 'package:century_cqg/Helper/nerve_base.dart';
 import 'package:century_cqg/Helper/nerve_styles.dart';
+import 'package:century_cqg/Screens/Dashboard/ui/home_page.dart';
 
 class OrderPendingPage extends StatelessWidget {
   final String symbol;
@@ -13,6 +17,7 @@ class OrderPendingPage extends StatelessWidget {
   final String stopLoss;
   final String orderId;
   final String orderSide;
+  final VoidCallback? onDone;
 
   const OrderPendingPage({
     super.key,
@@ -24,6 +29,7 @@ class OrderPendingPage extends StatelessWidget {
     required this.stopLoss,
     required this.orderId,
     required this.orderSide,
+    this.onDone,
   });
 
   @override
@@ -270,9 +276,27 @@ class OrderPendingPage extends StatelessWidget {
                       height: 40,
                       child: ElevatedButton(
                         onPressed: () {
-                          Navigator.pop(context);
+                          if (onDone != null) {
+                            onDone!();
+                            return;
+                          }
+                          // Set isFromDetails flag and select Trades bottom tab (index 3)
+                          final dashboardService =
+                              context.read<DashboardService>();
+                          dashboardService.setIsFromDetails(true);
+                          dashboardService.setSelectedHomeTabIndex(3);
+                          try {
+                            context
+                                .read<TradePageService>()
+                                .setSelectedTabIndex(1);
+                          } catch (_) {}
 
-                          Navigator.pop(context);
+                          Navigator.of(context).pushAndRemoveUntil(
+                            MaterialPageRoute(
+                              builder: (_) => const MobileHomePage(),
+                            ),
+                            (route) => false,
+                          );
                         },
                         style: ElevatedButton.styleFrom(
                           elevation: 0,

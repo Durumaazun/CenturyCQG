@@ -170,3 +170,4 @@ class NetPosClsSuccesPage extends StatelessWidget {
     return Container(height: 1, color: color);
   }
 }
+

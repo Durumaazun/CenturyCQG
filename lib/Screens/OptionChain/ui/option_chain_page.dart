@@ -1,218 +1,142 @@
+import 'package:century_cqg/Screens/Dashboard/service/dasboard_service.dart';
+import 'package:century_cqg/Screens/Dashboard/ui/home_page.dart';
+import 'package:century_cqg/Screens/Trade/service/trade_page_service.dart';
+import 'package:century_cqg/Screens/Trade/ui/orders/order_pending_page.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:provider/provider.dart';
+import '../service/option_chain_service.dart';
+import '../provider/option_chain_provider.dart';
 import 'basket_page.dart';
 
 class OptionChainPage extends StatefulWidget {
   final String symbol;
 
-  const OptionChainPage({Key? key, required this.symbol}) : super(key: key);
+  const OptionChainPage({super.key, required this.symbol});
 
   @override
   State<OptionChainPage> createState() => _OptionChainPageState();
 }
 
 class _OptionChainPageState extends State<OptionChainPage> {
-  String selectedExpirationDate = 'JUN 20';
-  String selectedType = 'call';
-  bool showCalls = true;
-  bool showPuts = true;
-  int? selectedRowIndex;
-  Set<int> basketRows = {};
-  bool basketEnabled = false;
+  final ScrollController _headerLeftScrollController = ScrollController();
+  final ScrollController _headerRightScrollController = ScrollController();
+  final ScrollController _bodyLeftScrollController = ScrollController();
+  final ScrollController _bodyRightScrollController = ScrollController();
+  bool _isSyncing = false;
 
-  // Badge system: row index to badge letter mapping
-  final Map<int, Map<String, dynamic>> rowBadges = {
-    0: {'letter': 'A', 'color': Colors.pink},
-    4: {'letter': 'B', 'color': Colors.green},
-    9: {'letter': 'S', 'color': Colors.red},
-    11: {'letter': 'S', 'color': Colors.red},
-  };
+  static const double _columnWidth = 60.0;
+  static const double _strikeWidth = 80.0;
+  static const double _rowHeight = 44.0;
+  static const double _spotPriceHeight = 44.0;
+  static const double _headerHeight = 36.0;
 
-  // Mock option chain data
-  final List<Map<String, dynamic>> optionChainData = [
-    {
-      'strikePrice': 155,
-      'bid': 12.60,
-      'ask': 12.60,
-      'last': 12.60,
-      'iv': 1.40,
-      'volume': 12.0,
-      'oi': 18.2,
-      'type': 'call',
-      'highlight': false,
-    },
-    {
-      'strikePrice': 155,
-      'bid': 12.60,
-      'ask': 12.60,
-      'last': 12.60,
-      'iv': 1.40,
-      'volume': 12.0,
-      'oi': 18.2,
-      'type': 'call',
-      'highlight': false,
-    },
-    {
-      'strikePrice': 155,
-      'bid': 12.60,
-      'ask': 12.60,
-      'last': 12.60,
-      'iv': 1.40,
-      'volume': 12.0,
-      'oi': 18.2,
-      'type': 'call',
-      'highlight': false,
-    },
-    {
-      'strikePrice': 155,
-      'bid': 12.60,
-      'ask': 12.60,
-      'last': 12.60,
-      'iv': 1.40,
-      'volume': 12.0,
-      'oi': 18.2,
-      'type': 'call',
-      'highlight': false,
-    },
-    {
-      'strikePrice': 155,
-      'bid': 12.60,
-      'ask': 12.60,
-      'last': 12.60,
-      'iv': 1.40,
-      'volume': 12.0,
-      'oi': 18.2,
-      'type': 'call',
-      'highlight': false,
-    },
-    {
-      'strikePrice': 156,
-      'bid': 12.60,
-      'ask': 12.60,
-      'last': 12.60,
-      'iv': 1.40,
-      'volume': 12.0,
-      'oi': 18.2,
-      'type': 'call',
-      'highlight': false,
-    },
-    {
-      'strikePrice': 155,
-      'bid': 12.60,
-      'ask': 12.60,
-      'last': 12.60,
-      'iv': 1.40,
-      'volume': 12.0,
-      'oi': 18.2,
-      'type': 'call',
-      'highlight': false,
-      'label': 'Spot Price',
-      'labelColor': Colors.orange,
-      'priceChange': '+20.4 (+13.4%)',
-    },
-    {
-      'strikePrice': 155,
-      'bid': 12.60,
-      'ask': 12.60,
-      'last': 12.60,
-      'iv': 1.40,
-      'volume': 12.0,
-      'oi': 18.2,
-      'type': 'call',
-      'highlight': false,
-    },
-    {
-      'strikePrice': 164,
-      'bid': 12.60,
-      'ask': 12.60,
-      'last': 12.60,
-      'iv': 1.40,
-      'volume': 12.0,
-      'oi': 18.2,
-      'type': 'call',
-      'highlight': true,
-      'label': 'ATM',
-      'labelColor': Colors.orange,
-    },
-    {
-      'strikePrice': 155,
-      'bid': 12.60,
-      'ask': 12.60,
-      'last': 12.60,
-      'iv': 1.40,
-      'volume': 12.0,
-      'oi': 18.2,
-      'type': 'call',
-      'highlight': false,
-      'label': 'OI Resistance',
-      'labelColor': Colors.orange,
-    },
-    {
-      'strikePrice': 175,
-      'bid': 12.60,
-      'ask': 12.60,
-      'last': 12.60,
-      'iv': 1.40,
-      'volume': 12.0,
-      'oi': 18.2,
-      'type': 'call',
-      'highlight': false,
-    },
-    {
-      'strikePrice': 175,
-      'bid': 12.60,
-      'ask': 12.60,
-      'last': 12.60,
-      'iv': 1.40,
-      'volume': 12.0,
-      'oi': 18.2,
-      'type': 'call',
-      'highlight': false,
-    },
-    {
-      'strikePrice': 175,
-      'bid': 12.60,
-      'ask': 12.60,
-      'last': 12.60,
-      'iv': 1.40,
-      'volume': 12.0,
-      'oi': 18.2,
-      'type': 'call',
-      'highlight': false,
-    },
-    {
-      'strikePrice': 176,
-      'bid': 12.60,
-      'ask': 12.60,
-      'last': 12.60,
-      'iv': 1.40,
-      'volume': 12.0,
-      'oi': 18.2,
-      'type': 'call',
-      'highlight': false,
-    },
-    {
-      'strikePrice': 175,
-      'bid': 12.60,
-      'ask': 12.60,
-      'last': 12.60,
-      'iv': 1.40,
-      'volume': 12.0,
-      'oi': 18.2,
-      'type': 'call',
-      'highlight': false,
-    },
-    {
-      'strikePrice': 175,
-      'bid': 12.60,
-      'ask': 12.60,
-      'last': 12.60,
-      'iv': 1.40,
-      'volume': 12.0,
-      'oi': 18.2,
-      'type': 'call',
-      'highlight': false,
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _headerLeftScrollController.addListener(
+      () => _syncFromLeft(_headerLeftScrollController),
+    );
+    _bodyLeftScrollController.addListener(
+      () => _syncFromLeft(_bodyLeftScrollController),
+    );
+    _headerRightScrollController.addListener(
+      () => _syncFromRight(_headerRightScrollController),
+    );
+    _bodyRightScrollController.addListener(
+      () => _syncFromRight(_bodyRightScrollController),
+    );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_bodyLeftScrollController.hasClients &&
+          _bodyLeftScrollController.position.maxScrollExtent > 0) {
+        _syncFromLeft(
+          _bodyLeftScrollController,
+          initialOffset: _bodyLeftScrollController.position.maxScrollExtent,
+        );
+      }
+    });
+  }
+
+  void _syncFromLeft(ScrollController source, {double? initialOffset}) {
+    if (_isSyncing) return;
+    _isSyncing = true;
+    final offset = initialOffset ?? source.offset;
+    final maxLeft = source.hasClients ? source.position.maxScrollExtent : 0.0;
+
+    if (_headerLeftScrollController.hasClients &&
+        _headerLeftScrollController != source) {
+      _headerLeftScrollController.jumpTo(
+        offset.clamp(0.0, _headerLeftScrollController.position.maxScrollExtent),
+      );
+    }
+    if (_bodyLeftScrollController.hasClients &&
+        _bodyLeftScrollController != source) {
+      _bodyLeftScrollController.jumpTo(
+        offset.clamp(0.0, _bodyLeftScrollController.position.maxScrollExtent),
+      );
+    }
+
+    if (maxLeft > 0) {
+      if (_headerRightScrollController.hasClients) {
+        final maxRight = _headerRightScrollController.position.maxScrollExtent;
+        final target = (maxLeft - offset).clamp(0.0, maxRight);
+        _headerRightScrollController.jumpTo(target);
+      }
+      if (_bodyRightScrollController.hasClients) {
+        final maxRight = _bodyRightScrollController.position.maxScrollExtent;
+        final target = (maxLeft - offset).clamp(0.0, maxRight);
+        _bodyRightScrollController.jumpTo(target);
+      }
+    }
+    _isSyncing = false;
+  }
+
+  void _syncFromRight(ScrollController source) {
+    if (_isSyncing) return;
+    _isSyncing = true;
+    final offset = source.offset;
+    final maxRight = source.hasClients ? source.position.maxScrollExtent : 0.0;
+
+    if (_headerRightScrollController.hasClients &&
+        _headerRightScrollController != source) {
+      _headerRightScrollController.jumpTo(
+        offset.clamp(
+          0.0,
+          _headerRightScrollController.position.maxScrollExtent,
+        ),
+      );
+    }
+    if (_bodyRightScrollController.hasClients &&
+        _bodyRightScrollController != source) {
+      _bodyRightScrollController.jumpTo(
+        offset.clamp(0.0, _bodyRightScrollController.position.maxScrollExtent),
+      );
+    }
+
+    if (maxRight > 0) {
+      if (_headerLeftScrollController.hasClients) {
+        final maxLeft = _headerLeftScrollController.position.maxScrollExtent;
+        final target = (maxRight - offset).clamp(0.0, maxLeft);
+        _headerLeftScrollController.jumpTo(target);
+      }
+      if (_bodyLeftScrollController.hasClients) {
+        final maxLeft = _bodyLeftScrollController.position.maxScrollExtent;
+        final target = (maxRight - offset).clamp(0.0, maxLeft);
+        _bodyLeftScrollController.jumpTo(target);
+      }
+    }
+    _isSyncing = false;
+  }
+
+  @override
+  void dispose() {
+    _headerLeftScrollController.dispose();
+    _headerRightScrollController.dispose();
+    _bodyLeftScrollController.dispose();
+    _bodyRightScrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -233,41 +157,701 @@ class _OptionChainPageState extends State<OptionChainPage> {
         elevation: 0,
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
+        surfaceTintColor: Colors.transparent,
         actions: [IconButton(icon: const Icon(Icons.search), onPressed: () {})],
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
+      body: Consumer<OptionChainNotifier>(
+        builder: (context, notifierValue, _) {
+          final state = notifierValue.state;
+          final notifier = notifierValue;
+          final optionChainData = OptionChainService().getOptionChainData();
+
+          return Column(
+            children: [
+              const SizedBox(height: 12),
+              _buildStockHeader(context, state, notifier, optionChainData),
+              _buildTopSectionBanner(),
+              // Pinned Fixed Header Row (Horizontal scroll only, never scrolls vertically)
+              Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Stock Header
-                  _buildStockHeader(),
-                  // Filters Row
-                  _buildFiltersRow(),
-                  // Option Chain Table
-                  _buildOptionChainTable(),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      controller: _headerLeftScrollController,
+                      child: SizedBox(
+                        width: _columnWidth * 6,
+                        child: _buildCallHeader(),
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    width: _strikeWidth,
+                    child: _buildStrikeHeader(state, notifier),
+                  ),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      controller: _headerRightScrollController,
+                      child: SizedBox(
+                        width: _columnWidth * 6,
+                        child: _buildPutHeader(),
+                      ),
+                    ),
+                  ),
                 ],
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.vertical,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Left Side: CALLS (CE) - Synchronized Horizontal Scroll
+                      Expanded(
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          controller: _bodyLeftScrollController,
+                          child: SizedBox(
+                            width: _columnWidth * 6,
+                            child: Column(
+                              children: [
+                                ...List.generate(optionChainData.length, (
+                                  index,
+                                ) {
+                                  final data = optionChainData[index];
+                                  final isSelected =
+                                      state.basketEnabled
+                                          ? state.basketRows.contains(index)
+                                          : (state.selectedRowIndex == index &&
+                                              state.selectedType == 'call');
+                                  return Column(
+                                    children: [
+                                      if (data['highlight'] == true &&
+                                          state.showSpotPrice)
+                                        Container(
+                                          height: _spotPriceHeight,
+                                          color: Colors.white,
+                                        ),
+                                      _buildCallRow(data, isSelected, () {
+                                        if (state.basketEnabled) {
+                                          if (state.basketRows.contains(
+                                            index,
+                                          )) {
+                                            notifier.removeBasketRow(index);
+                                          } else {
+                                            notifier.addBasketRow(index);
+                                          }
+                                        } else {
+                                          if (state.selectedRowIndex == index &&
+                                              state.selectedType == 'call') {
+                                            notifier.clearSelection();
+                                          } else {
+                                            notifier.setSelectedRowAndType(
+                                              index,
+                                              'call',
+                                            );
+                                          }
+                                        }
+                                      }),
+                                    ],
+                                  );
+                                }),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      // Center: FIXED STRIKE (Pinned - does not move horizontally)
+                      SizedBox(
+                        width: _strikeWidth,
+                        child: Column(
+                          children: [
+                            ...List.generate(optionChainData.length, (index) {
+                              final data = optionChainData[index];
+                              final isSelected =
+                                  state.basketEnabled
+                                      ? state.basketRows.contains(index)
+                                      : (state.selectedRowIndex == index);
+                              return Column(
+                                children: [
+                                  if (data['highlight'] == true &&
+                                      state.showSpotPrice)
+                                    _buildCenterSpotPriceCell(),
+                                  _buildStrikeCell(data, isSelected, () {
+                                    if (state.basketEnabled) {
+                                      if (state.basketRows.contains(index)) {
+                                        notifier.removeBasketRow(index);
+                                      } else {
+                                        notifier.addBasketRow(index);
+                                      }
+                                    } else {
+                                      if (state.selectedRowIndex == index) {
+                                        notifier.clearSelection();
+                                      } else {
+                                        notifier.setSelectedRowAndType(
+                                          index,
+                                          state.selectedType,
+                                        );
+                                      }
+                                    }
+                                  }),
+                                ],
+                              );
+                            }),
+                          ],
+                        ),
+                      ),
+                      // Right Side: PUTS (PE) - Synchronized Horizontal Scroll
+                      Expanded(
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          controller: _bodyRightScrollController,
+                          child: SizedBox(
+                            width: _columnWidth * 6,
+                            child: Column(
+                              children: [
+                                ...List.generate(optionChainData.length, (
+                                  index,
+                                ) {
+                                  final data = optionChainData[index];
+                                  final isSelected =
+                                      state.basketEnabled
+                                          ? state.basketRows.contains(index)
+                                          : (state.selectedRowIndex == index &&
+                                              state.selectedType == 'put');
+                                  return Column(
+                                    children: [
+                                      if (data['highlight'] == true &&
+                                          state.showSpotPrice)
+                                        Container(
+                                          height: _spotPriceHeight,
+                                          color: Colors.white,
+                                        ),
+                                      _buildPutRow(data, isSelected, () {
+                                        if (state.basketEnabled) {
+                                          if (state.basketRows.contains(
+                                            index,
+                                          )) {
+                                            notifier.removeBasketRow(index);
+                                          } else {
+                                            notifier.addBasketRow(index);
+                                          }
+                                        } else {
+                                          if (state.selectedRowIndex == index &&
+                                              state.selectedType == 'put') {
+                                            notifier.clearSelection();
+                                          } else {
+                                            notifier.setSelectedRowAndType(
+                                              index,
+                                              'put',
+                                            );
+                                          }
+                                        }
+                                      }),
+                                    ],
+                                  );
+                                }),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              if (state.basketEnabled)
+                _buildBasketSummaryBar(
+                  context,
+                  state,
+                  notifier,
+                  optionChainData,
+                  widget.symbol,
+                )
+              else if (state.selectedRowIndex != null)
+                _buildSingleOptionActionBar(
+                  context,
+                  state,
+                  notifier,
+                  optionChainData,
+                  widget.symbol,
+                ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildTopSectionBanner() {
+    return Container(
+      color: const Color(0xFFFFF8E1),
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          const Expanded(
+            child: Center(
+              child: Text(
+                'CALLS (CE)',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
               ),
             ),
           ),
-          // Trading Summary Section
-          if (selectedRowIndex != null) _buildTradingSummarySection(),
+          Container(width: 1, height: 14, color: Colors.grey[400]),
+          const SizedBox(
+            width: _strikeWidth,
+            child: Center(
+              child: Text(
+                'STRIKE',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+            ),
+          ),
+          Container(width: 1, height: 14, color: Colors.grey[400]),
+          const Expanded(
+            child: Center(
+              child: Text(
+                'PUTS (PE)',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildStockHeader() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+  Widget _buildCallHeader() {
+    return Container(
+      height: _headerHeight,
+      color: const Color(0xFFFFF8E1),
+      child: Row(
+        children: const [
+          SizedBox(
+            width: _columnWidth,
+            child: Center(
+              child: Text(
+                'VEGA',
+                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+          SizedBox(
+            width: _columnWidth,
+            child: Center(
+              child: Text(
+                'GAMMA',
+                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+          SizedBox(
+            width: _columnWidth,
+            child: Center(
+              child: Text(
+                'THETA',
+                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+          SizedBox(
+            width: _columnWidth,
+            child: Center(
+              child: Text(
+                'DELTA',
+                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+          SizedBox(
+            width: _columnWidth,
+            child: Center(
+              child: Text(
+                'OI',
+                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+          SizedBox(
+            width: _columnWidth,
+            child: Center(
+              child: Text(
+                'LTP',
+                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStrikeHeader(
+    OptionChainState state,
+    OptionChainNotifier notifier,
+  ) {
+    return Container(
+      height: _headerHeight,
+      color: const Color(0xFFFFF8E1),
+      alignment: Alignment.center,
+      child: Container(
+        height: 24,
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFC600),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        alignment: Alignment.center,
+        child: DropdownButton<String>(
+          underline: Container(),
+          isDense: true,
+          value: state.selectedExpirationDate,
+          icon: const Icon(Icons.expand_more, size: 12),
+          style: const TextStyle(
+            color: Colors.black,
+            fontSize: 9,
+            fontWeight: FontWeight.w600,
+          ),
+          items:
+              ['JUN 20', 'JUL 20', 'AUG 20'].map((date) {
+                return DropdownMenuItem<String>(value: date, child: Text(date));
+              }).toList(),
+          onChanged: (value) {
+            if (value != null) {
+              notifier.setSelectedExpirationDate(value);
+            }
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPutHeader() {
+    return Container(
+      height: _headerHeight,
+      color: const Color(0xFFFFF8E1),
+      child: Row(
+        children: const [
+          SizedBox(
+            width: _columnWidth,
+            child: Center(
+              child: Text(
+                'LTP',
+                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700),
+              ),
+            ),
+          ),
+          SizedBox(
+            width: _columnWidth,
+            child: Center(
+              child: Text(
+                'OI',
+                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+          SizedBox(
+            width: _columnWidth,
+            child: Center(
+              child: Text(
+                'DELTA',
+                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+          SizedBox(
+            width: _columnWidth,
+            child: Center(
+              child: Text(
+                'THETA',
+                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+          SizedBox(
+            width: _columnWidth,
+            child: Center(
+              child: Text(
+                'GAMMA',
+                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+          SizedBox(
+            width: _columnWidth,
+            child: Center(
+              child: Text(
+                'VEGA',
+                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCallRow(
+    Map<String, dynamic> data,
+    bool isSelected,
+    VoidCallback onTap,
+  ) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: _rowHeight,
+        color:
+            isSelected
+                ? const Color(0xFFFFC600).withOpacity(0.4)
+                : Colors.white,
+        child: Row(
+          children: [
+            SizedBox(
+              width: _columnWidth,
+              child: Center(
+                child: Text(
+                  '${data['callVega']}',
+                  style: const TextStyle(fontSize: 11),
+                ),
+              ),
+            ),
+            SizedBox(
+              width: _columnWidth,
+              child: Center(
+                child: Text(
+                  '${data['callGamma']}',
+                  style: const TextStyle(fontSize: 11),
+                ),
+              ),
+            ),
+            SizedBox(
+              width: _columnWidth,
+              child: Center(
+                child: Text(
+                  '${data['callTheta']}',
+                  style: const TextStyle(fontSize: 11),
+                ),
+              ),
+            ),
+            SizedBox(
+              width: _columnWidth,
+              child: Center(
+                child: Text(
+                  '${data['callDelta']}',
+                  style: const TextStyle(fontSize: 11),
+                ),
+              ),
+            ),
+            SizedBox(
+              width: _columnWidth,
+              child: Center(
+                child: Text(
+                  '${data['callOI']}',
+                  style: const TextStyle(fontSize: 11),
+                ),
+              ),
+            ),
+            SizedBox(
+              width: _columnWidth,
+              child: Center(
+                child: Text(
+                  '${data['callLTP']}',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCenterSpotPriceCell() {
+    return Container(
+      height: _spotPriceHeight,
+      color: Colors.white,
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: const [
+            Text(
+              'Spot Price 163',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                color: Colors.black,
+              ),
+            ),
+            Text(
+              '+20.4 (+13.4%)',
+              style: TextStyle(
+                fontSize: 9,
+                color: Colors.green,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStrikeCell(
+    Map<String, dynamic> data,
+    bool isSelected,
+    VoidCallback onTap,
+  ) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: _rowHeight,
+        color:
+            isSelected
+                ? const Color(0xFFFFC600).withOpacity(0.4)
+                : (data['highlight'] == true
+                    ? const Color(0xFFFFF9C4)
+                    : const Color(0xFFF9F9F9)),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                '${data['strikePrice']}',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              if (data['label'] != null)
+                Text(
+                  data['label'],
+                  style: TextStyle(
+                    fontSize: 8,
+                    color: data['labelColor'] ?? Colors.grey[600],
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPutRow(
+    Map<String, dynamic> data,
+    bool isSelected,
+    VoidCallback onTap,
+  ) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: _rowHeight,
+        color:
+            isSelected
+                ? const Color(0xFFFFC600).withOpacity(0.4)
+                : Colors.white,
+        child: Row(
+          children: [
+            SizedBox(
+              width: _columnWidth,
+              child: Center(
+                child: Text(
+                  '${data['putLTP']}',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(
+              width: _columnWidth,
+              child: Center(
+                child: Text(
+                  '${data['putOI']}',
+                  style: const TextStyle(fontSize: 11),
+                ),
+              ),
+            ),
+            SizedBox(
+              width: _columnWidth,
+              child: Center(
+                child: Text(
+                  '${data['putDelta']}',
+                  style: const TextStyle(fontSize: 11),
+                ),
+              ),
+            ),
+            SizedBox(
+              width: _columnWidth,
+              child: Center(
+                child: Text(
+                  '${data['putTheta']}',
+                  style: const TextStyle(fontSize: 11),
+                ),
+              ),
+            ),
+            SizedBox(
+              width: _columnWidth,
+              child: Center(
+                child: Text(
+                  '${data['putGamma']}',
+                  style: const TextStyle(fontSize: 11),
+                ),
+              ),
+            ),
+            SizedBox(
+              width: _columnWidth,
+              child: Center(
+                child: Text(
+                  '${data['putVega']}',
+                  style: const TextStyle(fontSize: 11),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStockHeader(
+    BuildContext context,
+    OptionChainState state,
+    OptionChainNotifier notifier,
+    List<Map<String, dynamic>> optionChainData,
+  ) {
+    return Container(
+      color:
+          Theme.of(context).brightness == Brightness.dark
+              ? const Color(0xFF1E1E1E)
+              : Colors.white,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       child: Row(
         children: [
+          const SizedBox(width: 4),
           // Stock Icon
           Container(
             width: 32,
-            height: 32,
+            height: 22,
             decoration: BoxDecoration(
               color: Colors.grey[300],
               borderRadius: BorderRadius.circular(6),
@@ -321,302 +905,185 @@ class _OptionChainPageState extends State<OptionChainPage> {
           ),
           // Action Icons
           IconButton(
-            icon: Icon(
-              Icons.shopping_cart_outlined,
-              size: 20,
-              color: Colors.grey[600],
+            icon: SvgPicture.asset(
+              'lib/Resources/Images/image_basket.svg',
+              width: 28,
+              height: 28,
             ),
             onPressed:
-                basketRows.isNotEmpty
+                state.basketRows.isNotEmpty
                     ? () {
-                      Navigator.push(
+                      BasketPage.show(
                         context,
-                        MaterialPageRoute(
-                          builder:
-                              (_) => BasketPage(
-                                symbol: widget.symbol,
-                                selectedRows: basketRows.toList(),
-                                optionChainData: optionChainData,
-                              ),
-                        ),
+                        symbol: widget.symbol,
+                        selectedRows: state.basketRows.toList(),
+                        optionChainData: optionChainData,
                       );
                     }
                     : null,
           ),
-          Switch(
-            value: basketEnabled,
-            onChanged: (val) {
-              setState(() {
-                basketEnabled = val;
-                if (!val) {
-                  basketRows.clear();
-                  selectedRowIndex = null;
-                }
-              });
-            },
+          Transform.scale(
+            scale: 0.7,
+            child: Switch(
+              value: state.basketEnabled,
+              onChanged: (val) {
+                notifier.setBasketEnabled(val);
+              },
+            ),
           ),
           IconButton(
-            icon: const Icon(Icons.volume_up_outlined, size: 20),
-            onPressed: () {},
+            icon: SvgPicture.asset(
+              'lib/Resources/Images/boxicons_candlestick.svg',
+              width: 28,
+              height: 28,
+              colorFilter: ColorFilter.mode(Colors.grey[600]!, BlendMode.srcIn),
+            ),
+            onPressed: () {
+              notifier.clearSelection();
+            },
           ),
+          const SizedBox(width: 12),
         ],
       ),
     );
   }
 
-  Widget _buildFiltersRow() {
-    return Container(
-      color: Colors.grey[50],
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            _buildFilterPill('DELTA'),
-            const SizedBox(width: 8),
-            _buildFilterPill('OI'),
-            const SizedBox(width: 8),
-            _buildFilterPill('LTP'),
-            const SizedBox(width: 8),
-            // Expiration Date Dropdown
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFC600),
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: Colors.grey[300]!),
-              ),
-              child: DropdownButton<String>(
-                underline: Container(),
-                isDense: true,
-                value: selectedExpirationDate,
-                icon: const Icon(Icons.expand_more, size: 18),
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                ),
-                items:
-                    ['JUN 20', 'JUL 20', 'AUG 20'].map((date) {
-                      return DropdownMenuItem<String>(
-                        value: date,
-                        child: Text(date),
-                      );
-                    }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    selectedExpirationDate = value!;
-                  });
-                },
-              ),
-            ),
-            const SizedBox(width: 8),
-            _buildFilterPill('LTP'),
-            const SizedBox(width: 8),
-            _buildFilterPill('OI'),
-            const SizedBox(width: 8),
-            _buildFilterPill('DELT'),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFilterPill(String label) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: Colors.grey[300]!),
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w500,
-          color: Colors.black87,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildOptionChainTable() {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Container(
-        color: Colors.white,
-        child: DataTable(
-          columnSpacing: 15,
-
-          columns: const [
-            DataColumn(
-              label: Text(
-                'Call Bid',
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
-              ),
-            ),
-            DataColumn(
-              label: Text(
-                'Call Ask',
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
-              ),
-            ),
-            DataColumn(
-              label: Text(
-                'Call Last',
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
-              ),
-            ),
-            DataColumn(
-              label: Text(
-                'Strike',
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
-              ),
-            ),
-            DataColumn(
-              label: Text(
-                'Put OI',
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
-              ),
-            ),
-            DataColumn(
-              label: Text(
-                'Put IV',
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
-              ),
-            ),
-            DataColumn(
-              label: Text(
-                'Put Vol',
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
-              ),
-            ),
-          ],
-          rows: List.generate(optionChainData.length, (index) {
-            final data = optionChainData[index];
-            final isHighlight = data['highlight'] ?? false;
-            final isSelected = selectedRowIndex == index;
-
-            final bgColor =
-                isSelected
-                    ? Colors.blue.withOpacity(0.15)
-                    : (isHighlight
-                        ? const Color(0xFFFFC600).withOpacity(0.3)
-                        : (data['label'] != null
-                            ? const Color(0xFFFFC600).withOpacity(0.15)
-                            : Colors.white));
-
-            return DataRow(
-              onSelectChanged:
-                  basketEnabled
-                      ? (selected) {
-                        setState(() {
-                          selectedRowIndex = selected == true ? index : null;
-                          if (selected == true && !basketRows.contains(index)) {
-                            basketRows.add(index);
-                          }
-                        });
-                      }
-                      : null,
-              selected: isSelected,
-              color: MaterialStateColor.resolveWith((states) => bgColor),
-              cells: [
-                DataCell(
-                  Text('${data['bid']}', style: const TextStyle(fontSize: 12)),
-                ),
-                DataCell(
-                  Text('${data['ask']}', style: const TextStyle(fontSize: 12)),
-                ),
-                DataCell(
-                  Text('${data['last']}', style: const TextStyle(fontSize: 12)),
-                ),
-                DataCell(
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        '${data['strikePrice']}',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      if (data['label'] != null)
-                        Text(
-                          data['label'],
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: data['labelColor'],
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      if (data['priceChange'] != null)
-                        Text(
-                          data['priceChange'],
-                          style: const TextStyle(
-                            fontSize: 10,
-                            color: Colors.orange,
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                DataCell(
-                  Text('${data['oi']}K', style: const TextStyle(fontSize: 12)),
-                ),
-                DataCell(
-                  Text('${data['iv']}', style: const TextStyle(fontSize: 12)),
-                ),
-                DataCell(
-                  Text(
-                    '${data['volume']}.0',
-                    style: const TextStyle(fontSize: 12),
-                  ),
-                ),
-              ],
-            );
-          }),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTradingSummarySection() {
-    final selectedData = optionChainData[selectedRowIndex!];
-    final strikePrice = selectedData['strikePrice'];
-
+  Widget _buildBasketSummaryBar(
+    BuildContext context,
+    OptionChainState state,
+    OptionChainNotifier notifier,
+    List<Map<String, dynamic>> optionChainData,
+    String symbol,
+  ) {
     return Container(
       color: Colors.white,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Title row with badge
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Max Loss',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    '\$21,345.00',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1DB854),
+                    ),
+                  ),
+                ],
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Max Profit',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    '\$113,711.00',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1DB854),
+                    ),
+                  ),
+                ],
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'POP',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    '47%',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
-                child: Text(
-                  'AAPL 20 Jun $strikePrice Call',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Req Margin: \$21,345.00',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Balance: \$83,711.00',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
+              ElevatedButton(
+                onPressed: () {
+                  BasketPage.show(
+                    context,
+                    symbol: symbol,
+                    selectedRows: state.basketRows.toList(),
+                    optionChainData: optionChainData,
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFF2C400),
+                  foregroundColor: Colors.black,
+                  disabledBackgroundColor: const Color(0xFFF2C400),
+                  disabledForegroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFC600),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: const Text(
-                  'Options',
-                  style: TextStyle(
-                    fontSize: 11,
+                child: Text(
+                  'Execute basket (${state.basketRows.length})',
+                  style: const TextStyle(
+                    fontSize: 13,
                     fontWeight: FontWeight.w600,
                     color: Colors.black,
                   ),
@@ -624,108 +1091,383 @@ class _OptionChainPageState extends State<OptionChainPage> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
 
-          // Stats grid
+  Widget _buildSingleOptionActionBar(
+    BuildContext context,
+    OptionChainState state,
+    OptionChainNotifier notifier,
+    List<Map<String, dynamic>> optionChainData,
+    String symbol,
+  ) {
+    final selectedIndex = state.selectedRowIndex ?? 0;
+    final selectedData =
+        (selectedIndex >= 0 && selectedIndex < optionChainData.length)
+            ? optionChainData[selectedIndex]
+            : optionChainData.first;
+    final strikePrice = selectedData['strikePrice'] ?? 550;
+    final isPut = state.selectedType == 'put';
+    final optionType = isPut ? 'Put' : 'Call';
+
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Title + Options Badge + Close Button
           Row(
             children: [
-              Expanded(
-                child: _buildStatItem('Max Loss', '-\$21,345.00', Colors.red),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildStatItem(
-                  'Max Profit',
-                  '\$113,711.00',
-                  Colors.green,
+              Text(
+                '$symbol 20 Jun $strikePrice $optionType',
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black,
                 ),
               ),
-              const SizedBox(width: 16),
-              Expanded(child: _buildStatItem('POP', '47%', Colors.grey)),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF2C400),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Text(
+                  'Options',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black,
+                  ),
+                ),
+              ),
+              const Spacer(),
+              InkWell(
+                onTap: () => notifier.clearSelection(),
+                borderRadius: BorderRadius.circular(12),
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: Icon(Icons.close, size: 18, color: Colors.grey[600]),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 12),
 
-          // Second row
+          // Stats Row: Max Loss | Max Profit | POP
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Max Loss',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    '\$21,345.00',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1DB854),
+                    ),
+                  ),
+                ],
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Max Profit',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    '\$113,711.00',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1DB854),
+                    ),
+                  ),
+                ],
+              ),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'POP',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.grey,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        '47%',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: 8),
+                  _buildMiniPayoffChart(),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Divider(height: 1, color: Color(0xFFEEEEEE)),
+          const SizedBox(height: 10),
+
+          // Margin & Balance
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Req Margin: \$21,345.00',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.grey,
+                ),
+              ),
+              const Text(
+                'Balance: \$83,711.00',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.grey,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Action Buttons: SELL and BUY
           Row(
             children: [
               Expanded(
-                child: _buildStatItem('Req Margin', '\$21,345.00', Colors.grey),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildStatItem('Balance', '\$83,711.00', Colors.grey),
-              ),
-              const SizedBox(width: 16),
-              Expanded(child: Container()),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          // Execute Button
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed:
-                  basketRows.isNotEmpty
-                      ? () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder:
-                                (_) => BasketPage(
-                                  symbol: widget.symbol,
-                                  selectedRows: basketRows.toList(),
-                                  optionChainData: optionChainData,
-                                ),
-                          ),
+                child: ElevatedButton(
+                  onPressed: () {
+                    final ltp =
+                        isPut
+                            ? selectedData['putLTP']
+                            : selectedData['callLTP'];
+                    showModalBottomSheet<void>(
+                      context: context,
+                      isScrollControlled: true,
+                      useRootNavigator: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (sheetContext) {
+                        return OrderPendingPage(
+                          symbol: '$symbol 20 Jun $strikePrice $optionType',
+                          units: '100',
+                          amount: '\$${ltp ?? 12.40}',
+                          orderType: 'Limit',
+                          gtcDate: '07/06/2026',
+                          stopLoss: '\$163.3',
+                          orderId: '#84060356',
+                          orderSide: 'Sell',
+                          onDone: () {
+                            final dashboardService =
+                                context.read<DashboardService>();
+                            dashboardService.setIsFromDetails(true);
+                            dashboardService.setSelectedHomeTabIndex(3);
+                            try {
+                              context
+                                  .read<TradePageService>()
+                                  .setSelectedTabIndex(1);
+                            } catch (_) {}
+                            Navigator.of(context).pushAndRemoveUntil(
+                              MaterialPageRoute(
+                                builder: (_) => const MobileHomePage(),
+                              ),
+                              (route) => false,
+                            );
+                          },
                         );
-                      }
-                      : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFFC600),
-                foregroundColor: Colors.black,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                      },
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFE53935),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'SELL',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
                 ),
               ),
-              child: Text(
-                'Execute Basket (${basketRows.length})',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () {
+                    final ltp =
+                        isPut
+                            ? selectedData['putLTP']
+                            : selectedData['callLTP'];
+                    showModalBottomSheet<void>(
+                      context: context,
+                      isScrollControlled: true,
+                      useRootNavigator: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (sheetContext) {
+                        return OrderPendingPage(
+                          symbol: '$symbol 20 Jun $strikePrice $optionType',
+                          units: '100',
+                          amount: '\$${ltp ?? 12.40}',
+                          orderType: 'Limit',
+                          gtcDate: '07/06/2026',
+                          stopLoss: '\$163.3',
+                          orderId: '#84060356',
+                          orderSide: 'Buy',
+                          onDone: () {
+                            final dashboardService =
+                                context.read<DashboardService>();
+                            dashboardService.setIsFromDetails(true);
+                            dashboardService.setSelectedHomeTabIndex(3);
+                            try {
+                              context
+                                  .read<TradePageService>()
+                                  .setSelectedTabIndex(1);
+                            } catch (_) {}
+                            Navigator.of(context).pushAndRemoveUntil(
+                              MaterialPageRoute(
+                                builder: (_) => const MobileHomePage(),
+                              ),
+                              (route) => false,
+                            );
+                          },
+                        );
+                      },
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1DB854),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'BUY',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
                 ),
               ),
-            ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildStatItem(String label, String value, Color valueColor) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w400,
-            color: Colors.grey,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: valueColor,
-          ),
-        ),
-      ],
+  Widget _buildMiniPayoffChart() {
+    return Container(
+      width: 36,
+      height: 22,
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.withOpacity(0.25)),
+        borderRadius: BorderRadius.circular(2),
+      ),
+      child: CustomPaint(painter: _MiniPayoffPainter()),
     );
   }
+}
+
+class _MiniPayoffPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+
+    final axisPaint =
+        Paint()
+          ..color = Colors.grey.withOpacity(0.35)
+          ..strokeWidth = 1.0;
+
+    canvas.drawLine(Offset(w * 0.55, 0), Offset(w * 0.55, h), axisPaint);
+    canvas.drawLine(Offset(0, h * 0.5), Offset(w, h * 0.5), axisPaint);
+
+    final redAreaPaint =
+        Paint()
+          ..color = const Color(0xFFEF4444).withOpacity(0.2)
+          ..style = PaintingStyle.fill;
+    final redPath =
+        Path()
+          ..moveTo(w * 0.1, h * 0.5)
+          ..lineTo(w * 0.55, h * 0.5)
+          ..lineTo(w * 0.1, h * 0.8)
+          ..close();
+    canvas.drawPath(redPath, redAreaPaint);
+
+    final greenAreaPaint =
+        Paint()
+          ..color = const Color(0xFF1DB854).withOpacity(0.2)
+          ..style = PaintingStyle.fill;
+    final greenPath =
+        Path()
+          ..moveTo(w * 0.55, h * 0.5)
+          ..lineTo(w * 0.95, h * 0.5)
+          ..lineTo(w * 0.95, h * 0.2)
+          ..lineTo(w * 0.75, h * 0.2)
+          ..close();
+    canvas.drawPath(greenPath, greenAreaPaint);
+
+    final linePaint =
+        Paint()
+          ..color = const Color(0xFFF2C400)
+          ..strokeWidth = 2.0
+          ..style = PaintingStyle.stroke;
+
+    final curvePath =
+        Path()
+          ..moveTo(w * 0.1, h * 0.8)
+          ..quadraticBezierTo(w * 0.55, h * 0.5, w * 0.75, h * 0.2)
+          ..lineTo(w * 0.95, h * 0.2);
+
+    canvas.drawPath(curvePath, linePaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

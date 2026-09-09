@@ -487,3 +487,4 @@ class HoldingPage extends StatelessWidget {
     );
   }
 }
+

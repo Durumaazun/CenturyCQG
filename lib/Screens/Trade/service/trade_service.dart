@@ -15,3 +15,4 @@ class TradeService extends ChangeNotifier {
     notifyListeners();
   }
 }
+

@@ -7,6 +7,8 @@ import 'package:century_cqg/Screens/Dashboard/model/dashboard_models.dart';
 import 'package:century_cqg/Screens/Watchlist/model/watchlist_item.dart';
 import 'package:century_cqg/Screens/OptionChain/ui/option_chain_content.dart';
 import 'package:century_cqg/Screens/OptionChain/ui/option_chain_page.dart';
+import 'package:century_cqg/Screens/OptionChain/provider/option_chain_provider.dart';
+import 'package:century_cqg/Screens/Trade/ui/orders/modify_order.dart';
 
 class StockDetailsProvider extends ChangeNotifier {
   int _selectedPeriodIndex = 1; // "1D" active by default
@@ -242,7 +244,18 @@ class StockDetailsPage extends StatelessWidget {
                                     index == provider.selectedTabIndex;
                                 return GestureDetector(
                                   onTap: () {
-                                    provider.setSelectedTabIndex(index);
+                                    if (index == 3) {
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder:
+                                              (context) => OptionChainPage(
+                                                symbol: symbol,
+                                              ),
+                                        ),
+                                      );
+                                    } else {
+                                      provider.setSelectedTabIndex(index);
+                                    }
                                   },
                                   child: Column(
                                     mainAxisSize: MainAxisSize.min,
@@ -308,103 +321,111 @@ class StockDetailsPage extends StatelessWidget {
                     ),
                   ),
 
-                  // Fixed Pinned Action Buttons: SELL and BUY at bottom
-                  Container(height: 1, color: sectionSeparatorColor),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 16,
-                    ),
-                    decoration: BoxDecoration(
-                      color:
-                          isDarkMode ? const Color(0xFF0D110F) : Colors.white,
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: SizedBox(
-                            height: 40,
-                            child: ElevatedButton(
-                              onPressed: () {},
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFDB3D52),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
+                  if (provider.selectedTabIndex != 3) ...[
+                    // Fixed Pinned Action Buttons: SELL and BUY at bottom
+                    Container(height: 1, color: sectionSeparatorColor),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 16,
+                      ),
+                      decoration: BoxDecoration(
+                        color:
+                            isDarkMode ? const Color(0xFF0D110F) : Colors.white,
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: SizedBox(
+                              height: 40,
+                              child: ElevatedButton(
+                                onPressed: () {},
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFDB3D52),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  elevation: 0,
                                 ),
-                                elevation: 0,
-                              ),
-                              child: Center(
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Text(
-                                      'SELL',
-                                      style: TextStyle(
-                                        color: Color(0xFFFFFFFF),
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
+                                child: Center(
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Text(
+                                        'SELL',
+                                        style: TextStyle(
+                                          color: Color(0xFFFFFFFF),
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    const Text(
-                                      '\$184.0',
-                                      style: TextStyle(
-                                        color: Color(0xFFFFFFFF),
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w400,
+                                      const SizedBox(width: 4),
+                                      const Text(
+                                        '\$184.0',
+                                        style: TextStyle(
+                                          color: Color(0xFFFFFFFF),
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w400,
+                                        ),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: SizedBox(
-                            height: 40,
-                            child: ElevatedButton(
-                              onPressed: () {},
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF27A374),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                elevation: 0,
-                              ),
-                              child: Center(
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Text(
-                                      'BUY',
-                                      style: TextStyle(
-                                        color: Color(0xFFFFFFFF),
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    const Text(
-                                      '\$184.0',
-                                      style: TextStyle(
-                                        color: Color(0xFFFFFFFF),
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w400,
-                                      ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: SizedBox(
+                              height: 40,
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => const ModifyOrderPage(),
+                                    ),
+                                  );
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF27A374),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  elevation: 0,
+                                ),
+                                child: Center(
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Text(
+                                        'BUY',
+                                        style: TextStyle(
+                                          color: Color(0xFFFFFFFF),
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      const Text(
+                                        '\$184.0',
+                                        style: TextStyle(
+                                          color: Color(0xFFFFFFFF),
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w400,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),
@@ -476,7 +497,18 @@ class StockDetailsPage extends StatelessWidget {
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (_) => OptionChainPage(symbol: symbol),
+                  builder:
+                      (context) => MultiProvider(
+                        providers: [
+                          ChangeNotifierProvider<OptionChainNotifier>(
+                            create: (_) => OptionChainNotifier(),
+                          ),
+                          Provider<OptionChainState>(
+                            create: (_) => OptionChainState(),
+                          ),
+                        ],
+                        child: OptionChainPage(symbol: symbol),
+                      ),
                 ),
               );
             },

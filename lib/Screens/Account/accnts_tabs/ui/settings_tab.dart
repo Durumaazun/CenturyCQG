@@ -22,7 +22,7 @@ class SettingsTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SettingsListTile(
+          SettingsListTile(
             isDarkMode: isDarkMode,
             cardColor: cardColor,
             iconBg: iconBg,
@@ -36,7 +36,7 @@ class SettingsTab extends StatelessWidget {
             },
           ),
           const SizedBox(height: 16),
-          _SettingsListTile(
+          SettingsListTile(
             isDarkMode: isDarkMode,
             cardColor: cardColor,
             iconBg: iconBg,
@@ -44,7 +44,7 @@ class SettingsTab extends StatelessWidget {
             icon: Icons.notifications_none_rounded,
           ),
           const SizedBox(height: 16),
-          _SettingsListTile(
+          SettingsListTile(
             isDarkMode: isDarkMode,
             cardColor: cardColor,
             iconBg: iconBg,
@@ -58,7 +58,7 @@ class SettingsTab extends StatelessWidget {
             },
           ),
           const SizedBox(height: 16),
-          _SettingsListTile(
+          SettingsListTile(
             isDarkMode: isDarkMode,
             cardColor: cardColor,
             iconBg: iconBg,
@@ -66,7 +66,7 @@ class SettingsTab extends StatelessWidget {
             icon: Icons.help_outline_rounded,
           ),
           const SizedBox(height: 16),
-          _SettingsListTile(
+          SettingsListTile(
             isDarkMode: isDarkMode,
             cardColor: cardColor,
             iconBg: iconBg,
@@ -80,7 +80,7 @@ class SettingsTab extends StatelessWidget {
   }
 }
 
-class _SettingsListTile extends StatelessWidget {
+class SettingsListTile extends StatelessWidget {
   final bool isDarkMode;
   final Color cardColor;
   final Color iconBg;
@@ -89,7 +89,8 @@ class _SettingsListTile extends StatelessWidget {
   final bool isLogout;
   final VoidCallback? onTap;
 
-  const _SettingsListTile({
+  const SettingsListTile({
+    super.key,
     required this.isDarkMode,
     required this.cardColor,
     required this.iconBg,

@@ -598,3 +598,4 @@ class _CloseAllPositionsSheet extends StatelessWidget {
     );
   }
 }
+

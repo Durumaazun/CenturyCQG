@@ -17,3 +17,4 @@ class AccountAllocationItem {
     required this.color,
   });
 }
+

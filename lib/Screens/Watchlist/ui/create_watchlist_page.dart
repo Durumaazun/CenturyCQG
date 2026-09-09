@@ -8,10 +8,10 @@ class CreateWatchlistPage extends StatefulWidget {
   const CreateWatchlistPage({super.key});
 
   @override
-  State<CreateWatchlistPage> createState() => _CreateWatchlistPageState();
+  State<CreateWatchlistPage> createState() => CreateWatchlistPageState();
 }
 
-class _CreateWatchlistPageState extends State<CreateWatchlistPage> {
+class CreateWatchlistPageState extends State<CreateWatchlistPage> {
   final TextEditingController _controller = TextEditingController();
   String? _errorText;
 
@@ -151,3 +151,4 @@ class _CreateWatchlistPageState extends State<CreateWatchlistPage> {
     );
   }
 }
+

@@ -15,3 +15,4 @@ class SummaryCardData {
     required this.darkBackground,
   });
 }
+

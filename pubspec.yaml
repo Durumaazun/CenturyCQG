@@ -42,17 +42,16 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
+  chart_package:
+    git:
+      url: https://github.com/nervesolutions/Flutter-Chart-Package.git
+      ref: f426976486cdce07e391d3128cc50a0ecb2ff5bf
+      path: chart_package
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
-
-chart_package:
-  git:
-    url: https://github.com/nervesolutions/Flutter-Chart-Package.git
-    ref: ee38803cd8e6644a9c923fad777e0251ea07881f
-    path: chart_package
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

@@ -10,26 +10,46 @@ class WatchlistService extends ChangeNotifier {
   int _selectedTabIndex = 0;
   Future<void>? _loadFuture;
 
-  final List<WatchlistItem> _watchlistItems = const [
-    WatchlistItem(
-      symbol: 'AAPL',
-      companyName: 'Apple Inc.',
-      price: 224.37,
-      changePercent: 1.26,
-    ),
-    WatchlistItem(
-      symbol: 'TSLA',
-      companyName: 'Tesla Inc.',
-      price: 254.42,
-      changePercent: -0.84,
-    ),
-    WatchlistItem(
-      symbol: 'MSFT',
-      companyName: 'Microsoft Corp.',
-      price: 447.65,
-      changePercent: 0.42,
-    ),
-  ];
+  final Map<String, List<WatchlistItem>> _watchlistItemsMap = {
+    'Favourites': [
+      const WatchlistItem(
+        symbol: 'AAPL',
+        companyName: 'Apple Inc.',
+        price: 577.87,
+        changePercent: 3.76,
+      ),
+      const WatchlistItem(
+        symbol: 'NVDA',
+        companyName: 'NVIDIA Corp.',
+        price: 577.87,
+        changePercent: 3.76,
+      ),
+      const WatchlistItem(
+        symbol: 'TSLA',
+        companyName: 'Tesla Inc.',
+        price: 577.87,
+        changePercent: 3.76,
+      ),
+      const WatchlistItem(
+        symbol: 'AAPL',
+        companyName: 'Apple Inc.',
+        price: 577.87,
+        changePercent: 3.76,
+      ),
+      const WatchlistItem(
+        symbol: 'NVDA',
+        companyName: 'NVIDIA Corp.',
+        price: 577.87,
+        changePercent: 3.76,
+      ),
+      const WatchlistItem(
+        symbol: 'TSLA',
+        companyName: 'Tesla Inc.',
+        price: 577.87,
+        changePercent: 3.76,
+      ),
+    ],
+  };
 
   List<String> get watchedLists => List.unmodifiable(_watchedLists);
 
@@ -44,7 +64,7 @@ class WatchlistService extends ChangeNotifier {
   }
 
   List<WatchlistItem> getWatchlistItems() {
-    return List.unmodifiable(_watchlistItems);
+    return getWatchlistItemsFor(selectedWatchlistName);
   }
 
   String get selectedWatchlistName {
@@ -55,12 +75,59 @@ class WatchlistService extends ChangeNotifier {
   }
 
   List<WatchlistItem> getWatchlistItemsFor(String watchlistName) {
-    if (watchlistName.toLowerCase() == _dataOwnerWatchlistName.toLowerCase()) {
-      return List.unmodifiable(_watchlistItems);
+    if (!_watchlistItemsMap.containsKey(watchlistName)) {
+      if (watchlistName.toLowerCase() ==
+          _dataOwnerWatchlistName.toLowerCase()) {
+        _watchlistItemsMap[watchlistName] = [
+          const WatchlistItem(
+            symbol: 'AAPL',
+            companyName: 'Apple Inc.',
+            price: 577.87,
+            changePercent: 3.76,
+          ),
+          const WatchlistItem(
+            symbol: 'NVDA',
+            companyName: 'NVIDIA Corp.',
+            price: 577.87,
+            changePercent: 3.76,
+          ),
+          const WatchlistItem(
+            symbol: 'TSLA',
+            companyName: 'Tesla Inc.',
+            price: 577.87,
+            changePercent: 3.76,
+          ),
+        ];
+      } else {
+        _watchlistItemsMap[watchlistName] = [];
+      }
     }
+    return List.unmodifiable(_watchlistItemsMap[watchlistName] ?? []);
+  }
 
-    // New/non-favourites lists start empty until items are explicitly added.
-    return const [];
+  void setWatchlistItemsFor(String watchlistName, List<WatchlistItem> items) {
+    _watchlistItemsMap[watchlistName] = List<WatchlistItem>.from(items);
+    notifyListeners();
+  }
+
+  void removeWatchlistItem(String watchlistName, int index) {
+    final list = _watchlistItemsMap[watchlistName];
+    if (list != null && index >= 0 && index < list.length) {
+      list.removeAt(index);
+      notifyListeners();
+    }
+  }
+
+  void reorderWatchlistItems(String watchlistName, int oldIndex, int newIndex) {
+    final list = _watchlistItemsMap[watchlistName];
+    if (list != null) {
+      if (newIndex > oldIndex) {
+        newIndex -= 1;
+      }
+      final item = list.removeAt(oldIndex);
+      list.insert(newIndex, item);
+      notifyListeners();
+    }
   }
 
   Future<void> loadWatchedLists() {

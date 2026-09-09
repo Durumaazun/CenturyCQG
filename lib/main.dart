@@ -14,6 +14,7 @@ import 'package:century_cqg/Screens/Trade/Holdings/service/holding_service.dart'
 import 'package:century_cqg/Screens/Trade/service/trade_page_service.dart';
 import 'package:century_cqg/Screens/Trade/service/trade_service.dart';
 import 'package:century_cqg/Screens/Trade/service/modify_order_service.dart';
+import 'package:century_cqg/Screens/OptionChain/provider/option_chain_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -48,6 +49,10 @@ void main() async {
         ChangeNotifierProvider<history_execution.ExecutionService>(
           create: (_) => history_execution.ExecutionService(),
         ),
+        ChangeNotifierProvider<OptionChainNotifier>(
+          create: (_) => OptionChainNotifier(),
+        ),
+        Provider<OptionChainState>(create: (_) => OptionChainState()),
       ],
       child: const MyApp(),
     ),

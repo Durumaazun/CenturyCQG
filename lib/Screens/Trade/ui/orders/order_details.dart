@@ -81,180 +81,187 @@ class OrderDetailsPage extends StatelessWidget {
               itemCount: orders.length,
               itemBuilder: (context, index) {
                 final order = orders[index];
-                return InkWell(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const ModifyOrderPage(),
-                      ),
-                    );
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Text(
-                              '#54548592',
-                              style: NerveStyles.tradeDetailsOrderDateStyle(
-                                mutedColor,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFFF8E1),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Text(
-                                'In Progress',
-                                style:
-                                    NerveStyles.tradeDetailsStatusBadgeStyle(),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.access_time_rounded,
-                                  size: 14,
-                                  color: mutedColor,
+                return Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const ModifyOrderPage(),
+                        ),
+                      );
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                '#54548592',
+                                style: NerveStyles.tradeDetailsOrderDateStyle(
+                                  mutedColor,
                                 ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  '2:56 GST',
-                                  style: NerveStyles.tradeDetailsOrderDateStyle(
-                                    mutedColor,
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFFF8E1),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text(
+                                  'In Progress',
+                                  style:
+                                      NerveStyles.tradeDetailsStatusBadgeStyle(),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.access_time_rounded,
+                                    size: 14,
+                                    color: mutedColor,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '2:56 GST',
+                                    style:
+                                        NerveStyles.tradeDetailsOrderDateStyle(
+                                          mutedColor,
+                                        ),
+                                  ),
+                                ],
+                              ),
+                              const Spacer(),
+                              InkWell(
+                                onTap: () {
+                                  showCancelOrderBottomSheet(
+                                    context,
+                                    isDarkMode,
+                                  );
+                                },
+                                borderRadius: BorderRadius.circular(10),
+                                child: Container(
+                                  width: 16,
+                                  height: 16,
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFFFFF0F2),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: const Icon(
+                                    Icons.close,
+                                    size: 10,
+                                    color: Color(0xFFFF8D99),
                                   ),
                                 ),
-                              ],
-                            ),
-                            const Spacer(),
-                            InkWell(
-                              onTap: () {
-                                showCancelOrderBottomSheet(context, isDarkMode);
-                              },
-                              borderRadius: BorderRadius.circular(10),
-                              child: Container(
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Container(
                                 width: 16,
                                 height: 16,
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFFFFF0F2),
-                                  shape: BoxShape.circle,
+                                decoration: BoxDecoration(
+                                  color: order.iconBg,
+                                  borderRadius: BorderRadius.circular(4),
                                 ),
                                 alignment: Alignment.center,
-                                child: const Icon(
-                                  Icons.close,
-                                  size: 10,
-                                  color: Color(0xFFFF8D99),
+                                child: Text(
+                                  order.iconText,
+                                  style: const TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white,
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Container(
-                              width: 16,
-                              height: 16,
-                              decoration: BoxDecoration(
-                                color: order.iconBg,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              alignment: Alignment.center,
-                              child: Text(
-                                order.iconText,
-                                style: const TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              order.symbol,
-                              style: NerveStyles.tradePositionSymbolStyle(
-                                titleColor,
-                              ),
-                            ),
-                            if (order.tag1.isNotEmpty) ...[
                               const SizedBox(width: 8),
-                              pillWidget(
-                                order.tag1,
-                                const Color(0xFFD7ECFF),
-                                const Color(0xFF3E6DA9),
+                              Text(
+                                order.symbol,
+                                style: NerveStyles.tradePositionSymbolStyle(
+                                  titleColor,
+                                ),
+                              ),
+                              if (order.tag1.isNotEmpty) ...[
+                                const SizedBox(width: 8),
+                                pillWidget(
+                                  order.tag1,
+                                  const Color(0xFFD7ECFF),
+                                  const Color(0xFF3E6DA9),
+                                ),
+                              ],
+                              if (order.tag2.isNotEmpty) ...[
+                                const SizedBox(width: 6),
+                                pillWidget(
+                                  order.tag2,
+                                  const Color(0xFFFFDDE2),
+                                  const Color(0xFFB04D5A),
+                                ),
+                              ],
+                              const Spacer(),
+                              Text(
+                                '+3.76%',
+                                style: NerveStyles.tradeDetailsOrderPnlStyle(
+                                  positiveColor,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                '\$577.87',
+                                style: NerveStyles.tradePositionSymbolStyle(
+                                  titleColor,
+                                ),
                               ),
                             ],
-                            if (order.tag2.isNotEmpty) ...[
-                              const SizedBox(width: 6),
-                              pillWidget(
-                                order.tag2,
-                                const Color(0xFFFFDDE2),
-                                const Color(0xFFB04D5A),
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: metricWidget(
+                                  'B/S',
+                                  'Buy ',
+                                  mutedColor,
+                                  positiveColor,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: metricWidget(
+                                  'Units',
+                                  '200',
+                                  mutedColor,
+                                  titleColor,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: metricWidget(
+                                  'Price',
+                                  '164.68',
+                                  mutedColor,
+                                  titleColor,
+                                  textAlign: TextAlign.end,
+                                ),
                               ),
                             ],
-                            const Spacer(),
-                            Text(
-                              '+3.76%',
-                              style: NerveStyles.tradeDetailsOrderPnlStyle(
-                                positiveColor,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              '\$577.87',
-                              style: NerveStyles.tradePositionSymbolStyle(
-                                titleColor,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: metricWidget(
-                                'B/S',
-                                'Buy ',
-                                mutedColor,
-                                positiveColor,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: metricWidget(
-                                'Units',
-                                '200',
-                                mutedColor,
-                                titleColor,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: metricWidget(
-                                'Price',
-                                '164.68',
-                                mutedColor,
-                                titleColor,
-                                textAlign: TextAlign.end,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Container(height: 1, color: borderColor),
-                      ],
+                          ),
+                          const SizedBox(height: 8),
+                          Container(height: 1, color: borderColor),
+                        ],
+                      ),
                     ),
                   ),
                 );

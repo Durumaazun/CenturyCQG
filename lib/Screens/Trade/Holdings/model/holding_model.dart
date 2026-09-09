@@ -23,3 +23,4 @@ class HoldingItem {
     required this.iconColor,
   });
 }
+

@@ -197,3 +197,4 @@ class HistoryList extends StatelessWidget {
     );
   }
 }
+

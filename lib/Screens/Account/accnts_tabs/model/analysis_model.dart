@@ -4,3 +4,4 @@ class AnalysisMetric {
 
   const AnalysisMetric({required this.label, required this.value});
 }
+

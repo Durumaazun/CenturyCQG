@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:century_cqg/Helper/nerve_colors.dart';
 import 'package:century_cqg/Screens/OptionChain/ui/option_chain_page.dart'
     as oc;
+import 'package:century_cqg/Screens/OptionChain/provider/option_chain_provider.dart';
 import '../service/search_service.dart';
 
 class SearchPage extends StatelessWidget {
@@ -226,12 +227,32 @@ class SearchPage extends StatelessWidget {
                                                   Navigator.of(context).push(
                                                     MaterialPageRoute(
                                                       builder:
-                                                          (_) =>
-                                                              oc.OptionChainPage(
-                                                                symbol:
-                                                                    result
-                                                                        .symbol,
+                                                          (
+                                                            context,
+                                                          ) => MultiProvider(
+                                                            providers: [
+                                                              ChangeNotifierProvider<
+                                                                OptionChainNotifier
+                                                              >(
+                                                                create:
+                                                                    (_) =>
+                                                                        OptionChainNotifier(),
                                                               ),
+                                                              Provider<
+                                                                OptionChainState
+                                                              >(
+                                                                create:
+                                                                    (_) =>
+                                                                        OptionChainState(),
+                                                              ),
+                                                            ],
+                                                            child:
+                                                                oc.OptionChainPage(
+                                                                  symbol:
+                                                                      result
+                                                                          .symbol,
+                                                                ),
+                                                          ),
                                                     ),
                                                   );
                                                 },
@@ -346,11 +367,32 @@ class SearchPage extends StatelessWidget {
                                                 Navigator.of(context).push(
                                                   MaterialPageRoute(
                                                     builder:
-                                                        (_) =>
-                                                            oc.OptionChainPage(
-                                                              symbol:
-                                                                  result.symbol,
+                                                        (
+                                                          context,
+                                                        ) => MultiProvider(
+                                                          providers: [
+                                                            ChangeNotifierProvider<
+                                                              OptionChainNotifier
+                                                            >(
+                                                              create:
+                                                                  (_) =>
+                                                                      OptionChainNotifier(),
                                                             ),
+                                                            Provider<
+                                                              OptionChainState
+                                                            >(
+                                                              create:
+                                                                  (_) =>
+                                                                      OptionChainState(),
+                                                            ),
+                                                          ],
+                                                          child:
+                                                              oc.OptionChainPage(
+                                                                symbol:
+                                                                    result
+                                                                        .symbol,
+                                                              ),
+                                                        ),
                                                   ),
                                                 );
                                               },

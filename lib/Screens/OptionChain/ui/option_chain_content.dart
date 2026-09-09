@@ -6,10 +6,10 @@ class OptionChainContent extends StatefulWidget {
   const OptionChainContent({Key? key, required this.symbol}) : super(key: key);
 
   @override
-  State<OptionChainContent> createState() => _OptionChainContentState();
+  State<OptionChainContent> createState() => OptionChainContentState();
 }
 
-class _OptionChainContentState extends State<OptionChainContent> {
+class OptionChainContentState extends State<OptionChainContent> {
   String? selectedExpirationDate;
   String selectedType = 'call'; // 'call' or 'put'
 
@@ -164,3 +164,4 @@ class _OptionChainContentState extends State<OptionChainContent> {
     );
   }
 }
+

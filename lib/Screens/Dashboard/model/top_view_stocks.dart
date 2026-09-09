@@ -15,3 +15,4 @@ class StockPosition {
     required this.ltp,
   });
 }
+

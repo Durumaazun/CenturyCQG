@@ -623,3 +623,4 @@ class _ClosedPositionItem {
     required this.badgeColor,
   });
 }
+

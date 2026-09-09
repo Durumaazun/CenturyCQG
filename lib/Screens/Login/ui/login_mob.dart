@@ -10,10 +10,10 @@ class LoginMobPage extends StatefulWidget {
   const LoginMobPage({super.key});
 
   @override
-  State<LoginMobPage> createState() => _LoginMobPageState();
+  State<LoginMobPage> createState() => LoginMobPageState();
 }
 
-class _LoginMobPageState extends State<LoginMobPage> {
+class LoginMobPageState extends State<LoginMobPage> {
   late TextEditingController _userIdController;
   late TextEditingController _passwordController;
   bool _showPassword = false;
@@ -430,3 +430,4 @@ class _LoginMobPageState extends State<LoginMobPage> {
     );
   }
 }
+
