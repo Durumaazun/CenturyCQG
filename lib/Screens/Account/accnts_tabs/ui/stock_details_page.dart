@@ -131,307 +131,293 @@ class StockDetailsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider<StockDetailsProvider>(
-      create: (_) => StockDetailsProvider(),
-      child: Consumer<StockDetailsProvider>(
-        builder: (context, provider, _) {
-          final isDarkMode = NerveBase().isDarkMode;
-          final isPositive = percentageChange >= 0;
-          final themeColor =
-              isPositive
-                  ? (isDarkMode
-                      ? Colors.green.shade300
-                      : const Color(0xFF27A374))
-                  : (isDarkMode
-                      ? Colors.red.shade300
-                      : const Color(0xFFDB3D52));
-          final sectionSeparatorColor =
-              isDarkMode ? const Color(0xFF1E2421) : const Color(0xFFF6F6F6);
-          final borderColor =
-              isDarkMode ? const Color(0xFF202220) : const Color(0xFFEEEEEE);
+    return Consumer<StockDetailsProvider>(
+      builder: (context, provider, _) {
+        final isDarkMode = NerveBase().isDarkMode;
+        final isPositive = percentageChange >= 0;
+        final themeColor =
+            isPositive
+                ? (isDarkMode ? Colors.green.shade300 : const Color(0xFF27A374))
+                : (isDarkMode ? Colors.red.shade300 : const Color(0xFFDB3D52));
+        final sectionSeparatorColor =
+            isDarkMode ? const Color(0xFF1E2421) : const Color(0xFFF6F6F6);
+        final borderColor =
+            isDarkMode ? const Color(0xFF202220) : const Color(0xFFEEEEEE);
 
-          return Scaffold(
+        return Scaffold(
+          backgroundColor: isDarkMode ? const Color(0xFF0D110F) : Colors.white,
+          appBar: AppBar(
             backgroundColor:
                 isDarkMode ? const Color(0xFF0D110F) : Colors.white,
-            appBar: AppBar(
-              backgroundColor:
-                  isDarkMode ? const Color(0xFF0D110F) : Colors.white,
-              elevation: 0,
-              scrolledUnderElevation: 0,
-              leading: IconButton(
-                icon: Icon(
-                  Icons.arrow_back,
-                  color: isDarkMode ? Colors.white : const Color(0xB2000000),
-                ),
-                onPressed: () => Navigator.of(context).pop(),
+            elevation: 0,
+            scrolledUnderElevation: 0,
+            leading: IconButton(
+              icon: Icon(
+                Icons.arrow_back,
+                color: isDarkMode ? Colors.white : const Color(0xB2000000),
               ),
-              title: Text(
-                symbol,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: isDarkMode ? Colors.white : const Color(0xB2000000),
-                ),
-              ),
-              centerTitle: false,
-              bottom: PreferredSize(
-                preferredSize: const Size.fromHeight(8),
-                child: Container(height: 8, color: sectionSeparatorColor),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            title: Text(
+              symbol,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: isDarkMode ? Colors.white : const Color(0xB2000000),
               ),
             ),
-            body: SafeArea(
-              child: Column(
-                children: [
-                  Expanded(
-                    child: SingleChildScrollView(
-                      physics: const ClampingScrollPhysics(),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Stock Header Info Card
-                          _buildStockHeaderInfoCard(
-                            context: context,
-                            isDarkMode: isDarkMode,
+            centerTitle: false,
+            bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(8),
+              child: Container(height: 8, color: sectionSeparatorColor),
+            ),
+          ),
+          body: SafeArea(
+            child: Column(
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    physics: const ClampingScrollPhysics(),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Stock Header Info Card
+                        _buildStockHeaderInfoCard(
+                          context: context,
+                          isDarkMode: isDarkMode,
+                          themeColor: themeColor,
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // Interactive fl_chart Chart Section
+                        Container(
+                          height: 184,
+                          width: double.infinity,
+                          padding: const EdgeInsets.only(right: 16, left: 16),
+                          child: _buildFlChart(
                             themeColor: themeColor,
+                            isDarkMode: isDarkMode,
+                            selectedPeriodIndex: provider.selectedPeriodIndex,
                           ),
+                        ),
 
-                          const SizedBox(height: 16),
+                        const SizedBox(height: 8),
 
-                          // Interactive fl_chart Chart Section
-                          Container(
-                            height: 184,
-                            width: double.infinity,
-                            padding: const EdgeInsets.only(right: 16, left: 16),
-                            child: _buildFlChart(
-                              themeColor: themeColor,
-                              isDarkMode: isDarkMode,
-                              selectedPeriodIndex: provider.selectedPeriodIndex,
+                        // Time period selectors row
+                        _buildTimePeriodSelector(provider, isDarkMode),
+
+                        const SizedBox(height: 16),
+
+                        // Section Separator (Divider Bar)
+                        Container(height: 8, color: sectionSeparatorColor),
+
+                        // Net Positions Section
+                        _buildNetPositionsSection(isDarkMode),
+
+                        // Section Separator (Divider Bar)
+                        Container(height: 16, color: sectionSeparatorColor),
+
+                        // Custom Tabs Row: Overview, Market Depth, Details
+                        Container(
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(color: borderColor, width: 1),
                             ),
                           ),
-
-                          const SizedBox(height: 8),
-
-                          // Time period selectors row
-                          _buildTimePeriodSelector(provider, isDarkMode),
-
-                          const SizedBox(height: 16),
-
-                          // Section Separator (Divider Bar)
-                          Container(height: 8, color: sectionSeparatorColor),
-
-                          // Net Positions Section
-                          _buildNetPositionsSection(isDarkMode),
-
-                          // Section Separator (Divider Bar)
-                          Container(height: 16, color: sectionSeparatorColor),
-
-                          // Custom Tabs Row: Overview, Market Depth, Details
-                          Container(
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              border: Border(
-                                bottom: BorderSide(
-                                  color: borderColor,
-                                  width: 1,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: List.generate(_tabs.length, (index) {
+                              final tab = _tabs[index];
+                              final isSelected =
+                                  index == provider.selectedTabIndex;
+                              return GestureDetector(
+                                onTap: () {
+                                  if (index == 3) {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder:
+                                            (context) =>
+                                                OptionChainPage(symbol: symbol),
+                                      ),
+                                    );
+                                  } else {
+                                    provider.setSelectedTabIndex(index);
+                                  }
+                                },
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 12,
+                                        horizontal: 8,
+                                      ),
+                                      child: Text(
+                                        tab,
+                                        style: TextStyle(
+                                          color:
+                                              isSelected
+                                                  ? (isDarkMode
+                                                      ? Colors.white
+                                                      : const Color(0xFF222222))
+                                                  : (isDarkMode
+                                                      ? Colors.white38
+                                                      : const Color(
+                                                        0xFF888888,
+                                                      )),
+                                          fontWeight:
+                                              isSelected
+                                                  ? FontWeight.bold
+                                                  : FontWeight.w500,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ),
+                                    Container(
+                                      height: 3,
+                                      width: 80,
+                                      color:
+                                          isSelected
+                                              ? const Color(0xFFFFC600)
+                                              : Colors.transparent,
+                                    ),
+                                  ],
                                 ),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              children: List.generate(_tabs.length, (index) {
-                                final tab = _tabs[index];
-                                final isSelected =
-                                    index == provider.selectedTabIndex;
-                                return GestureDetector(
-                                  onTap: () {
-                                    if (index == 3) {
-                                      Navigator.of(context).push(
-                                        MaterialPageRoute(
-                                          builder:
-                                              (context) => OptionChainPage(
-                                                symbol: symbol,
-                                              ),
-                                        ),
-                                      );
-                                    } else {
-                                      provider.setSelectedTabIndex(index);
-                                    }
-                                  },
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: 12,
-                                          horizontal: 8,
-                                        ),
-                                        child: Text(
-                                          tab,
-                                          style: TextStyle(
-                                            color:
-                                                isSelected
-                                                    ? (isDarkMode
-                                                        ? Colors.white
-                                                        : const Color(
-                                                          0xFF222222,
-                                                        ))
-                                                    : (isDarkMode
-                                                        ? Colors.white38
-                                                        : const Color(
-                                                          0xFF888888,
-                                                        )),
-                                            fontWeight:
-                                                isSelected
-                                                    ? FontWeight.bold
-                                                    : FontWeight.w500,
-                                            fontSize: 14,
-                                          ),
-                                        ),
-                                      ),
-                                      Container(
-                                        height: 3,
-                                        width: 80,
-                                        color:
-                                            isSelected
-                                                ? const Color(0xFFFFC600)
-                                                : Colors.transparent,
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              }),
-                            ),
+                              );
+                            }),
                           ),
+                        ),
 
-                          const SizedBox(height: 16),
+                        const SizedBox(height: 16),
 
-                          // Tab View Content (Depending on selected tab index, default shows Overview)
-                          if (provider.selectedTabIndex == 0)
-                            _buildOverviewTabContent(isDarkMode)
-                          else if (provider.selectedTabIndex == 1)
-                            _buildMarketDepthContent(isDarkMode)
-                          else if (provider.selectedTabIndex == 2)
-                            _buildDetailsTabContent(isDarkMode)
-                          else if (provider.selectedTabIndex == 3)
-                            _buildOptionChainContent(isDarkMode),
+                        // Tab View Content (Depending on selected tab index, default shows Overview)
+                        if (provider.selectedTabIndex == 0)
+                          _buildOverviewTabContent(isDarkMode)
+                        else if (provider.selectedTabIndex == 1)
+                          _buildMarketDepthContent(isDarkMode)
+                        else if (provider.selectedTabIndex == 2)
+                          _buildDetailsTabContent(isDarkMode)
+                        else if (provider.selectedTabIndex == 3)
+                          _buildOptionChainContent(isDarkMode),
 
-                          const SizedBox(height: 24),
-                        ],
-                      ),
+                        const SizedBox(height: 24),
+                      ],
                     ),
                   ),
+                ),
 
-                  if (provider.selectedTabIndex != 3) ...[
-                    // Fixed Pinned Action Buttons: SELL and BUY at bottom
-                    Container(height: 1, color: sectionSeparatorColor),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 16,
-                      ),
-                      decoration: BoxDecoration(
-                        color:
-                            isDarkMode ? const Color(0xFF0D110F) : Colors.white,
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: SizedBox(
-                              height: 40,
-                              child: ElevatedButton(
-                                onPressed: () {},
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFFDB3D52),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  elevation: 0,
-                                ),
-                                child: Center(
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Text(
-                                        'SELL',
-                                        style: TextStyle(
-                                          color: Color(0xFFFFFFFF),
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 4),
-                                      const Text(
-                                        '\$184.0',
-                                        style: TextStyle(
-                                          color: Color(0xFFFFFFFF),
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w400,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: SizedBox(
-                              height: 40,
-                              child: ElevatedButton(
-                                onPressed: () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (_) => const ModifyOrderPage(),
-                                    ),
-                                  );
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF27A374),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  elevation: 0,
-                                ),
-                                child: Center(
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Text(
-                                        'BUY',
-                                        style: TextStyle(
-                                          color: Color(0xFFFFFFFF),
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 4),
-                                      const Text(
-                                        '\$184.0',
-                                        style: TextStyle(
-                                          color: Color(0xFFFFFFFF),
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w400,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                if (provider.selectedTabIndex != 3) ...[
+                  // Fixed Pinned Action Buttons: SELL and BUY at bottom
+                  Container(height: 1, color: sectionSeparatorColor),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 16,
                     ),
-                  ],
+                    decoration: BoxDecoration(
+                      color:
+                          isDarkMode ? const Color(0xFF0D110F) : Colors.white,
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: SizedBox(
+                            height: 40,
+                            child: ElevatedButton(
+                              onPressed: () {},
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFDB3D52),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                elevation: 0,
+                              ),
+                              child: Center(
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Text(
+                                      'SELL',
+                                      style: TextStyle(
+                                        color: Color(0xFFFFFFFF),
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    const Text(
+                                      '\$184.0',
+                                      style: TextStyle(
+                                        color: Color(0xFFFFFFFF),
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w400,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: SizedBox(
+                            height: 40,
+                            child: ElevatedButton(
+                              onPressed: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => const ModifyOrderPage(),
+                                  ),
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF27A374),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                elevation: 0,
+                              ),
+                              child: Center(
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Text(
+                                      'BUY',
+                                      style: TextStyle(
+                                        color: Color(0xFFFFFFFF),
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    const Text(
+                                      '\$184.0',
+                                      style: TextStyle(
+                                        color: Color(0xFFFFFFFF),
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w400,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
-              ),
+              ],
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 

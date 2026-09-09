@@ -2,9 +2,8 @@ import 'package:flutter/material.dart';
 
 class OrderPendingPage extends StatefulWidget {
   final String symbol;
-  final String? action;
 
-  const OrderPendingPage({super.key, required this.symbol, this.action});
+  const OrderPendingPage({super.key, required this.symbol});
 
   @override
   State<OrderPendingPage> createState() => _OrderPendingPageState();
@@ -58,11 +57,9 @@ class _OrderPendingPageState extends State<OrderPendingPage> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                Text(
-                  widget.action != null
-                      ? '${widget.action} order for ${widget.symbol} has been submitted successfully'
-                      : 'Your order has been submitted successfully',
-                  style: const TextStyle(
+                const Text(
+                  'Your order has been submitted successfully',
+                  style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey,
                     fontWeight: FontWeight.w400,
@@ -75,9 +72,8 @@ class _OrderPendingPageState extends State<OrderPendingPage> {
                   child: ElevatedButton(
                     onPressed: () {
                       Navigator.of(context).pop(); // Close dialog
-                      Navigator.of(
-                        context,
-                      ).pop(); // Return from OrderPendingPage
+                      Navigator.of(context).pop(); // Back to option chain
+                      Navigator.of(context).pop(); // Close basket page
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF1DB854),
@@ -188,42 +184,6 @@ class _OrderPendingPageState extends State<OrderPendingPage> {
                       color: Colors.black,
                     ),
                   ),
-                  if (widget.action != null) ...[
-                    const SizedBox(height: 16),
-                    const Text(
-                      'Action',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.grey,
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: (widget.action == 'BUY'
-                                ? const Color(0xFF1DB854)
-                                : const Color(0xFFE53935))
-                            .withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        widget.action!,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color:
-                              widget.action == 'BUY'
-                                  ? const Color(0xFF1DB854)
-                                  : const Color(0xFFE53935),
-                        ),
-                      ),
-                    ),
-                  ],
                   const SizedBox(height: 16),
                   const Text(
                     'Status',

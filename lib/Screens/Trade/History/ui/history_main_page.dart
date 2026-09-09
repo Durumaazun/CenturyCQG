@@ -3,8 +3,8 @@ import 'package:provider/provider.dart';
 
 import 'package:century_cqg/Helper/nerve_base.dart';
 import 'package:century_cqg/Helper/nerve_styles.dart';
+import 'package:century_cqg/Screens/Trade/Execution/ui/execution_page.dart';
 import 'package:century_cqg/Screens/Trade/History/service/history_service.dart';
-import 'package:century_cqg/Screens/Trade/History/ui/execution_page.dart';
 import 'package:century_cqg/Screens/Trade/History/ui/history_page.dart';
 
 class HistoryPage extends StatelessWidget {
@@ -98,4 +98,3 @@ class HistoryPage extends StatelessWidget {
     );
   }
 }
-

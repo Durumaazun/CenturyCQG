@@ -16,12 +16,8 @@ class WatchlistPage extends StatefulWidget {
 }
 
 class _WatchlistPageState extends State<WatchlistPage> {
-  bool _isEditing = false;
-  bool _isRenamingInline = false;
   final TextEditingController _nameController = TextEditingController();
   final FocusNode _renameFocusNode = FocusNode();
-  List<Tuple2<String, WatchlistItem>> _editableItems = [];
-  String? _editingWatchlistName;
 
   @override
   void dispose() {
@@ -31,10 +27,8 @@ class _WatchlistPageState extends State<WatchlistPage> {
   }
 
   void _startInlineRename(WatchlistService watchlistService) {
-    setState(() {
-      _nameController.text = watchlistService.selectedWatchlistName;
-      _isRenamingInline = true;
-    });
+    _nameController.text = watchlistService.selectedWatchlistName;
+    watchlistService.startInlineRename();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _renameFocusNode.requestFocus();
     });
@@ -42,65 +36,28 @@ class _WatchlistPageState extends State<WatchlistPage> {
 
   void _submitInlineRename(WatchlistService watchlistService) async {
     final newName = _nameController.text.trim();
-    if (newName.isNotEmpty &&
-        newName != watchlistService.selectedWatchlistName) {
-      final renamed = await watchlistService.renameSelectedWatchlist(newName);
-      if (!renamed && mounted) {
-        _showYellowErrorSnackBar(context, 'Unable to rename watchlist');
-      }
-    }
-    if (mounted) {
-      setState(() {
-        _isRenamingInline = false;
-      });
+    final renamed = await watchlistService.submitInlineRename(newName);
+    if (!renamed && mounted) {
+      _showYellowErrorSnackBar(context, 'Unable to rename watchlist');
     }
   }
 
   void _enterEditMode(WatchlistService watchlistService) {
-    final selectedWatchlistName = watchlistService.selectedWatchlistName;
-    final items = watchlistService.getWatchlistItemsFor(selectedWatchlistName);
-    setState(() {
-      _isEditing = true;
-      _editingWatchlistName = selectedWatchlistName;
-      _nameController.text = selectedWatchlistName;
-      _editableItems =
-          items
-              .asMap()
-              .entries
-              .map(
-                (e) => Tuple2<String, WatchlistItem>(
-                  '${e.key}_${e.value.symbol}_${DateTime.now().millisecondsSinceEpoch}',
-                  e.value,
-                ),
-              )
-              .toList();
-    });
+    _nameController.text = watchlistService.selectedWatchlistName;
+    watchlistService.enterEditMode();
   }
 
   void _saveChanges(WatchlistService watchlistService) async {
     final newName = _nameController.text.trim();
-    if (_editingWatchlistName != null) {
-      if (newName.isNotEmpty && newName != _editingWatchlistName) {
-        await watchlistService.renameSelectedWatchlist(newName);
-      }
-      watchlistService.setWatchlistItemsFor(
-        newName.isNotEmpty ? newName : _editingWatchlistName!,
-        _editableItems.map((e) => e.item2).toList(),
-      );
+    if (newName.isNotEmpty &&
+        newName != watchlistService.editingWatchlistName) {
+      await watchlistService.renameSelectedWatchlist(newName);
     }
-    setState(() {
-      _isEditing = false;
-      _editingWatchlistName = null;
-      _editableItems = [];
-    });
+    watchlistService.saveChanges();
   }
 
-  void _cancelEditMode() {
-    setState(() {
-      _isEditing = false;
-      _editingWatchlistName = null;
-      _editableItems = [];
-    });
+  void _cancelEditMode(WatchlistService watchlistService) {
+    watchlistService.cancelEditMode();
   }
 
   void _showYellowErrorSnackBar(BuildContext context, String message) {
@@ -116,10 +73,7 @@ class _WatchlistPageState extends State<WatchlistPage> {
     BuildContext context,
     WatchlistService watchlistService,
   ) async {
-    final watchlistNames = List<String>.from(watchlistService.watchedLists);
-    final selectedNames = <String>{
-      watchlistService.watchedLists[watchlistService.selectedTabIndex],
-    };
+    watchlistService.initAddToWatchlistSelection();
 
     await showModalBottomSheet<void>(
       context: context,
@@ -142,13 +96,17 @@ class _WatchlistPageState extends State<WatchlistPage> {
             if (!didPop) return;
             FocusManager.instance.primaryFocus?.unfocus();
           },
-          child: StatefulBuilder(
-            builder: (stfContext, setModalState) {
+          child: Consumer<WatchlistService>(
+            builder: (context, watchlistService, child) {
+              final watchlistNames = watchlistService.watchedLists;
+              final selectedNames =
+                  watchlistService.selectedAddToWatchlistNames;
+
               return Align(
                 alignment: Alignment.bottomCenter,
                 child: Padding(
                   padding: EdgeInsets.only(
-                    bottom: MediaQuery.of(stfContext).viewInsets.bottom,
+                    bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
                   ),
                   child: SingleChildScrollView(
                     physics: const ClampingScrollPhysics(),
@@ -238,18 +196,11 @@ class _WatchlistPageState extends State<WatchlistPage> {
                                                                 0xFFB0B7B3,
                                                               ),
                                                     ),
-                                                    onChanged: (value) {
-                                                      setModalState(() {
-                                                        if (value ?? false) {
-                                                          selectedNames.add(
+                                                    onChanged: (_) {
+                                                      watchlistService
+                                                          .toggleAddToWatchlistSelection(
                                                             name,
                                                           );
-                                                        } else {
-                                                          selectedNames.remove(
-                                                            name,
-                                                          );
-                                                        }
-                                                      });
                                                     },
                                                   ),
                                                 ),
@@ -562,623 +513,637 @@ class _WatchlistPageState extends State<WatchlistPage> {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = NerveBase().isDarkMode;
-    final watchlistService = context.watch<WatchlistService>();
-    final selectedWatchlistName = watchlistService.selectedWatchlistName;
-    final List<WatchlistItem> items = watchlistService.getWatchlistItemsFor(
-      selectedWatchlistName,
-    );
-
-    // If active watchlist changed externally while editing, exit edit mode
-    if (_isEditing && _editingWatchlistName != selectedWatchlistName) {
-      _isEditing = false;
-      _editingWatchlistName = null;
-      _editableItems = [];
-    }
-
     final backgroundColor =
         isDarkMode ? const Color(0xFF0D110F) : const Color(0xFFFFFFFF);
     final titleColor = isDarkMode ? Colors.white : const Color(0xFF2A2A2A);
 
-    if (_isEditing) {
-      return Container(
-        width: double.infinity,
-        color: backgroundColor,
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
-              child: Row(
+    return Consumer<WatchlistService>(
+      builder: (context, watchlistService, child) {
+        final selectedWatchlistName = watchlistService.selectedWatchlistName;
+        final List<WatchlistItem> items = watchlistService.getWatchlistItemsFor(
+          selectedWatchlistName,
+        );
+
+        if (watchlistService.isEditing) {
+          final editableItems = watchlistService.editableItems;
+
+          return Container(
+            width: double.infinity,
+            color: backgroundColor,
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 2,
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Flexible(
+                              child: IntrinsicWidth(
+                                child: TextField(
+                                  controller: _nameController,
+                                  style: NerveStyles.black_medium_16(
+                                    isDarkMode,
+                                  ).copyWith(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w700,
+                                    color: titleColor,
+                                  ),
+                                  decoration: InputDecoration(
+                                    isDense: true,
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 2,
+                                      vertical: 2,
+                                    ),
+                                    border: const UnderlineInputBorder(
+                                      borderSide: BorderSide(
+                                        color: Color(0xFFF2C400),
+                                        width: 1.5,
+                                      ),
+                                    ),
+                                    enabledBorder: UnderlineInputBorder(
+                                      borderSide: BorderSide(
+                                        color:
+                                            isDarkMode
+                                                ? Colors.white24
+                                                : const Color(0xFFD8DDE3),
+                                        width: 1.5,
+                                      ),
+                                    ),
+                                    focusedBorder: const UnderlineInputBorder(
+                                      borderSide: BorderSide(
+                                        color: Color(0xFFF2C400),
+                                        width: 1.5,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Icon(
+                              Icons.drive_file_rename_outline,
+                              size: 18,
+                              color:
+                                  isDarkMode
+                                      ? const Color(0xFF9AA0A6)
+                                      : const Color(0xFF5F6368),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 24,
+                          minHeight: 24,
+                        ),
+                        icon: const Icon(
+                          Icons.delete_outline,
+                          color: Color(0xFFD32F2F),
+                          size: 22,
+                        ),
+                        tooltip: 'Delete Watchlist',
+                        onPressed:
+                            () => _deleteSelectedWatchlist(
+                              context,
+                              watchlistService,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1, color: Color(0xFFEEEEEE)),
+                Expanded(
+                  child:
+                      editableItems.isEmpty
+                          ? Center(
+                            child: Text(
+                              'No items in watchlist',
+                              style: TextStyle(
+                                color: Colors.grey[500],
+                                fontSize: 14,
+                              ),
+                            ),
+                          )
+                          : Theme(
+                            data: Theme.of(context).copyWith(
+                              canvasColor: Colors.transparent,
+                              shadowColor: Colors.transparent,
+                            ),
+                            child: ReorderableListView.builder(
+                              buildDefaultDragHandles: false,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 4,
+                              ),
+                              itemCount: editableItems.length,
+                              onReorder: (oldIndex, newIndex) {
+                                watchlistService.reorderEditableItem(
+                                  oldIndex,
+                                  newIndex,
+                                );
+                              },
+                              itemBuilder: (context, index) {
+                                final tuple = editableItems[index];
+                                final item = tuple.item2;
+                                final isPositive = item.changePercent >= 0;
+
+                                return Container(
+                                  key: ValueKey(tuple.item1),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 10,
+                                    horizontal: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    border: Border(
+                                      bottom: BorderSide(
+                                        color:
+                                            isDarkMode
+                                                ? const Color(0xFF1C211E)
+                                                : const Color(0xFFF5F5F5),
+                                      ),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      ReorderableDragStartListener(
+                                        index: index,
+                                        child: Padding(
+                                          padding: const EdgeInsets.only(
+                                            right: 12,
+                                            left: 4,
+                                          ),
+                                          child: Icon(
+                                            Icons.menu,
+                                            color:
+                                                isDarkMode
+                                                    ? Colors.grey[600]
+                                                    : const Color(0xFFB0B7B3),
+                                            size: 20,
+                                          ),
+                                        ),
+                                      ),
+                                      _buildCompanyLogo(item.symbol),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              item.symbol,
+                                              style: TextStyle(
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.w700,
+                                                color:
+                                                    isDarkMode
+                                                        ? Colors.white
+                                                        : Colors.black,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 3),
+                                            Text(
+                                              '\$${item.price.toStringAsFixed(2)}',
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w500,
+                                                color:
+                                                    isDarkMode
+                                                        ? Colors.grey[400]
+                                                        : const Color(
+                                                          0xFF6E7471,
+                                                        ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 6,
+                                              vertical: 2,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color:
+                                                  isDarkMode
+                                                      ? NerveColors
+                                                          .chartbgGreenDark
+                                                      : NerveColors
+                                                          .chartbgGreenLigth,
+                                              borderRadius:
+                                                  BorderRadius.circular(4),
+                                            ),
+                                            child: SvgPicture.asset(
+                                              'lib/Resources/Images/line_chart.svg',
+                                              width: 62,
+                                              height: 14,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            '${isPositive ? '+' : ''}${item.changePercent.toStringAsFixed(2)}% (+4.89 pts)',
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w600,
+                                              color: Color(0xFF27B67A),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(width: 8),
+                                      InkWell(
+                                        onTap: () {
+                                          watchlistService.removeEditableItem(
+                                            index,
+                                          );
+                                        },
+                                        borderRadius: BorderRadius.circular(12),
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(6),
+                                          child: Icon(
+                                            Icons.close,
+                                            color:
+                                                isDarkMode
+                                                    ? Colors.grey[400]
+                                                    : const Color(0xFF9E9E9E),
+                                            size: 20,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: backgroundColor,
+                    border: Border(
+                      top: BorderSide(
+                        color:
+                            isDarkMode
+                                ? const Color(0xFF1C211E)
+                                : const Color(0xFFEEEEEE),
+                      ),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: SizedBox(
+                          height: 40,
+                          child: OutlinedButton(
+                            onPressed: () => _cancelEditMode(watchlistService),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 0),
+                              foregroundColor:
+                                  isDarkMode ? Colors.white70 : Colors.black87,
+                              side: BorderSide(
+                                color:
+                                    isDarkMode
+                                        ? Colors.white24
+                                        : Colors.grey[300]!,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: const Text(
+                              'Cancel',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: SizedBox(
+                          height: 40,
+                          child: ElevatedButton(
+                            onPressed: () => _saveChanges(watchlistService),
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 0),
+                              backgroundColor: const Color(0xFFF2C400),
+                              foregroundColor: Colors.black,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: const Text(
+                              'Done',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        final isRenamingInline = watchlistService.isRenamingInline;
+
+        return Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            border: Border(
+              top: BorderSide(
+                color:
+                    isDarkMode ? const Color(0xFF1C211E) : Colors.transparent,
+                width: isDarkMode ? 1 : 0,
+              ),
+              bottom: BorderSide(
+                color:
+                    isDarkMode ? const Color(0xFF1C211E) : Colors.transparent,
+                width: isDarkMode ? 1 : 0,
+              ),
+            ),
+          ),
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
+            children: [
+              Row(
                 children: [
                   Expanded(
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Flexible(
-                          child: IntrinsicWidth(
-                            child: TextField(
-                              controller: _nameController,
-                              style: NerveStyles.black_medium_16(
-                                isDarkMode,
-                              ).copyWith(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
-                                color: titleColor,
-                              ),
-                              decoration: InputDecoration(
-                                isDense: true,
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 2,
-                                  vertical: 2,
+                        if (isRenamingInline)
+                          Flexible(
+                            child: IntrinsicWidth(
+                              child: TextField(
+                                focusNode: _renameFocusNode,
+                                controller: _nameController,
+                                style: NerveStyles.black_medium_16(
+                                  isDarkMode,
+                                ).copyWith(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  color:
+                                      isDarkMode ? Colors.white : Colors.black,
                                 ),
-                                border: const UnderlineInputBorder(
-                                  borderSide: BorderSide(
-                                    color: Color(0xFFF2C400),
-                                    width: 1.5,
+                                decoration: InputDecoration(
+                                  isDense: true,
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 2,
+                                    vertical: 2,
+                                  ),
+                                  border: const UnderlineInputBorder(
+                                    borderSide: BorderSide(
+                                      color: Color(0xFFF2C400),
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  enabledBorder: UnderlineInputBorder(
+                                    borderSide: BorderSide(
+                                      color:
+                                          isDarkMode
+                                              ? Colors.white24
+                                              : const Color(0xFFD8DDE3),
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  focusedBorder: const UnderlineInputBorder(
+                                    borderSide: BorderSide(
+                                      color: Color(0xFFF2C400),
+                                      width: 1.5,
+                                    ),
                                   ),
                                 ),
-                                enabledBorder: UnderlineInputBorder(
-                                  borderSide: BorderSide(
-                                    color:
-                                        isDarkMode
-                                            ? Colors.white24
-                                            : const Color(0xFFD8DDE3),
-                                    width: 1.5,
-                                  ),
-                                ),
-                                focusedBorder: const UnderlineInputBorder(
-                                  borderSide: BorderSide(
-                                    color: Color(0xFFF2C400),
-                                    width: 1.5,
-                                  ),
-                                ),
+                                onSubmitted:
+                                    (_) =>
+                                        _submitInlineRename(watchlistService),
                               ),
                             ),
+                          )
+                        else
+                          Flexible(
+                            child: Text(
+                              selectedWatchlistName,
+                              overflow: TextOverflow.ellipsis,
+                              style: NerveStyles.black_medium_16(
+                                isDarkMode,
+                              ).copyWith(height: 1.0),
+                            ),
                           ),
-                        ),
                         const SizedBox(width: 6),
-                        Icon(
-                          Icons.drive_file_rename_outline,
-                          size: 18,
-                          color:
-                              isDarkMode
-                                  ? const Color(0xFF9AA0A6)
-                                  : const Color(0xFF5F6368),
+                        IconButton(
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(
+                            minWidth: 24,
+                            minHeight: 24,
+                          ),
+                          tooltip:
+                              isRenamingInline
+                                  ? 'Save Name'
+                                  : 'Edit WatchedList Name',
+                          onPressed: () {
+                            if (isRenamingInline) {
+                              _submitInlineRename(watchlistService);
+                            } else {
+                              _startInlineRename(watchlistService);
+                            }
+                          },
+                          icon: Icon(
+                            isRenamingInline
+                                ? Icons.check
+                                : Icons.drive_file_rename_outline,
+                            size: 18,
+                            color:
+                                isRenamingInline
+                                    ? const Color(0xFF1DB854)
+                                    : (isDarkMode
+                                        ? const Color(0xFF9AA0A6)
+                                        : const Color(0xFF5F6368)),
+                          ),
                         ),
                       ],
                     ),
                   ),
-                  IconButton(
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(
-                      minWidth: 24,
-                      minHeight: 24,
-                    ),
-                    icon: const Icon(
-                      Icons.delete_outline,
-                      color: Color(0xFFD32F2F),
-                      size: 22,
-                    ),
-                    tooltip: 'Delete Watchlist',
-                    onPressed:
-                        () =>
-                            _deleteSelectedWatchlist(context, watchlistService),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(height: 1, color: Color(0xFFEEEEEE)),
-            Expanded(
-              child:
-                  _editableItems.isEmpty
-                      ? Center(
-                        child: Text(
-                          'No items in watchlist',
-                          style: TextStyle(
-                            color: Colors.grey[500],
-                            fontSize: 14,
-                          ),
-                        ),
-                      )
-                      : Theme(
-                        data: Theme.of(context).copyWith(
-                          canvasColor: Colors.transparent,
-                          shadowColor: Colors.transparent,
-                        ),
-                        child: ReorderableListView.builder(
-                          buildDefaultDragHandles: false,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 4,
-                          ),
-                          itemCount: _editableItems.length,
-                          onReorder: (oldIndex, newIndex) {
-                            setState(() {
-                              if (newIndex > oldIndex) {
-                                newIndex -= 1;
-                              }
-                              final item = _editableItems.removeAt(oldIndex);
-                              _editableItems.insert(newIndex, item);
-                            });
-                          },
-                          itemBuilder: (context, index) {
-                            final tuple = _editableItems[index];
-                            final item = tuple.item2;
-                            final isPositive = item.changePercent >= 0;
-
-                            return Container(
-                              key: ValueKey(tuple.item1),
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 10,
-                                horizontal: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                border: Border(
-                                  bottom: BorderSide(
-                                    color:
-                                        isDarkMode
-                                            ? const Color(0xFF1C211E)
-                                            : const Color(0xFFF5F5F5),
-                                  ),
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  ReorderableDragStartListener(
-                                    index: index,
-                                    child: Padding(
-                                      padding: const EdgeInsets.only(
-                                        right: 12,
-                                        left: 4,
-                                      ),
-                                      child: Icon(
-                                        Icons.menu,
-                                        color:
-                                            isDarkMode
-                                                ? Colors.grey[600]
-                                                : const Color(0xFFB0B7B3),
-                                        size: 20,
-                                      ),
-                                    ),
-                                  ),
-                                  _buildCompanyLogo(item.symbol),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          item.symbol,
-                                          style: TextStyle(
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.w700,
-                                            color:
-                                                isDarkMode
-                                                    ? Colors.white
-                                                    : Colors.black,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 3),
-                                        Text(
-                                          '\$${item.price.toStringAsFixed(2)}',
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w500,
-                                            color:
-                                                isDarkMode
-                                                    ? Colors.grey[400]
-                                                    : const Color(0xFF6E7471),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 6,
-                                          vertical: 2,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color:
-                                              isDarkMode
-                                                  ? NerveColors.chartbgGreenDark
-                                                  : NerveColors
-                                                      .chartbgGreenLigth,
-                                          borderRadius: BorderRadius.circular(
-                                            4,
-                                          ),
-                                        ),
-                                        child: SvgPicture.asset(
-                                          'lib/Resources/Images/line_chart.svg',
-                                          width: 62,
-                                          height: 14,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        '${isPositive ? '+' : ''}${item.changePercent.toStringAsFixed(2)}% (+4.89 pts)',
-                                        style: const TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
-                                          color: Color(0xFF27B67A),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(width: 8),
-                                  InkWell(
-                                    onTap: () {
-                                      setState(() {
-                                        _editableItems.removeAt(index);
-                                      });
-                                    },
-                                    borderRadius: BorderRadius.circular(12),
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(6),
-                                      child: Icon(
-                                        Icons.close,
-                                        color:
-                                            isDarkMode
-                                                ? Colors.grey[400]
-                                                : const Color(0xFF9E9E9E),
-                                        size: 20,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: backgroundColor,
-                border: Border(
-                  top: BorderSide(
-                    color:
-                        isDarkMode
-                            ? const Color(0xFF1C211E)
-                            : const Color(0xFFEEEEEE),
-                  ),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: SizedBox(
-                      height: 40,
-                      child: OutlinedButton(
-                        onPressed: _cancelEditMode,
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 0),
-                          foregroundColor:
-                              isDarkMode ? Colors.white70 : Colors.black87,
-                          side: BorderSide(
-                            color:
-                                isDarkMode ? Colors.white24 : Colors.grey[300]!,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        child: const Text(
-                          'Cancel',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: SizedBox(
-                      height: 40,
-                      child: ElevatedButton(
-                        onPressed: () => _saveChanges(watchlistService),
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 0),
-                          backgroundColor: const Color(0xFFF2C400),
-                          foregroundColor: Colors.black,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        child: const Text(
-                          'Done',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        border: Border(
-          top: BorderSide(
-            color: isDarkMode ? const Color(0xFF1C211E) : Colors.transparent,
-            width: isDarkMode ? 1 : 0,
-          ),
-          bottom: BorderSide(
-            color: isDarkMode ? const Color(0xFF1C211E) : Colors.transparent,
-            width: isDarkMode ? 1 : 0,
-          ),
-        ),
-      ),
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (_isRenamingInline)
-                      Flexible(
-                        child: IntrinsicWidth(
-                          child: TextField(
-                            focusNode: _renameFocusNode,
-                            controller: _nameController,
-                            style: NerveStyles.black_medium_16(
-                              isDarkMode,
-                            ).copyWith(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                              color: isDarkMode ? Colors.white : Colors.black,
-                            ),
-                            decoration: InputDecoration(
-                              isDense: true,
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 2,
-                                vertical: 2,
-                              ),
-                              border: const UnderlineInputBorder(
-                                borderSide: BorderSide(
-                                  color: Color(0xFFF2C400),
-                                  width: 1.5,
-                                ),
-                              ),
-                              enabledBorder: UnderlineInputBorder(
-                                borderSide: BorderSide(
-                                  color:
-                                      isDarkMode
-                                          ? Colors.white24
-                                          : const Color(0xFFD8DDE3),
-                                  width: 1.5,
-                                ),
-                              ),
-                              focusedBorder: const UnderlineInputBorder(
-                                borderSide: BorderSide(
-                                  color: Color(0xFFF2C400),
-                                  width: 1.5,
-                                ),
-                              ),
-                            ),
-                            onSubmitted:
-                                (_) => _submitInlineRename(watchlistService),
-                          ),
-                        ),
-                      )
-                    else
-                      Flexible(
-                        child: Text(
-                          selectedWatchlistName,
-                          overflow: TextOverflow.ellipsis,
-                          style: NerveStyles.black_medium_16(
-                            isDarkMode,
-                          ).copyWith(height: 1.0),
-                        ),
-                      ),
-                    const SizedBox(width: 6),
+                  if (!isRenamingInline) ...[
                     IconButton(
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(
                         minWidth: 24,
                         minHeight: 24,
                       ),
-                      tooltip:
-                          _isRenamingInline
-                              ? 'Save Name'
-                              : 'Edit WatchedList Name',
-                      onPressed: () {
-                        if (_isRenamingInline) {
-                          _submitInlineRename(watchlistService);
-                        } else {
-                          _startInlineRename(watchlistService);
-                        }
-                      },
+                      tooltip: 'Add to Watchlist',
+                      onPressed:
+                          () => _showAddToWatchlistBottomSheet(
+                            context,
+                            watchlistService,
+                          ),
                       icon: Icon(
-                        _isRenamingInline
-                            ? Icons.check
-                            : Icons.drive_file_rename_outline,
-                        size: 18,
+                        Icons.add,
+                        size: 22,
                         color:
-                            _isRenamingInline
-                                ? const Color(0xFF1DB854)
-                                : (isDarkMode
-                                    ? const Color(0xFF9AA0A6)
-                                    : const Color(0xFF5F6368)),
+                            isDarkMode
+                                ? const Color(0xFF9AA0A6)
+                                : const Color(0xFF5F6368),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    IconButton(
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 24,
+                        minHeight: 24,
+                      ),
+                      tooltip: 'Edit Watchlist',
+                      onPressed: () => _enterEditMode(watchlistService),
+                      icon: const Icon(
+                        Icons.edit_square,
+                        size: 18,
+                        color: Color(0xFF1E55CF),
                       ),
                     ),
                   ],
-                ),
+                ],
               ),
-              if (!_isRenamingInline) ...[
-                IconButton(
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(
-                    minWidth: 24,
-                    minHeight: 24,
-                  ),
-                  tooltip: 'Add to Watchlist',
-                  onPressed:
-                      () => _showAddToWatchlistBottomSheet(
-                        context,
-                        watchlistService,
+              (items.isEmpty)
+                  ? Center(
+                    child: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFC600),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                  icon: Icon(
-                    Icons.add,
-                    size: 22,
-                    color:
-                        isDarkMode
-                            ? const Color(0xFF9AA0A6)
-                            : const Color(0xFF5F6368),
-                  ),
-                ),
-                const SizedBox(width: 4),
-                IconButton(
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(
-                    minWidth: 24,
-                    minHeight: 24,
-                  ),
-                  tooltip: 'Edit Watchlist',
-                  onPressed: () => _enterEditMode(watchlistService),
-                  icon: const Icon(
-                    Icons.edit_square,
-                    size: 18,
-                    color: Color(0xFF1E55CF),
-                  ),
-                ),
-              ],
-            ],
-          ),
-          (items.isEmpty)
-              ? Center(
-                child: Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFC600),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: IconButton(
-                    padding: EdgeInsets.zero,
-                    iconSize: 22,
-                    onPressed:
-                        () => _showAddToWatchlistBottomSheet(
-                          context,
-                          watchlistService,
-                        ),
-                    icon: const Icon(Icons.add, color: Colors.black),
-                  ),
-                ),
-              )
-              : const SizedBox(height: 2),
-          ...items.map((item) {
-            final isPositive = item.changePercent >= 0;
+                      child: IconButton(
+                        padding: EdgeInsets.zero,
+                        iconSize: 22,
+                        onPressed:
+                            () => _showAddToWatchlistBottomSheet(
+                              context,
+                              watchlistService,
+                            ),
+                        icon: const Icon(Icons.add, color: Colors.black),
+                      ),
+                    ),
+                  )
+                  : const SizedBox(height: 2),
+              ...items.map((item) {
+                final isPositive = item.changePercent >= 0;
 
-            return Container(
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(
-                    color: NerveStyles.rowBorderColor(isDarkMode),
-                  ),
-                ),
-              ),
-              child: Row(
-                children: [
-                  _buildCompanyLogo(item.symbol),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          item.symbol,
-                          style: NerveStyles.black_bold_16(isDarkMode),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '\$${item.price.toStringAsFixed(2)}',
-                          style: NerveStyles.grey_medium_13(isDarkMode),
-                        ),
-                      ],
+                return Container(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(
+                        color: NerveStyles.rowBorderColor(isDarkMode),
+                      ),
                     ),
                   ),
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
+                  child: Row(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        decoration: BoxDecoration(
-                          color:
-                              isDarkMode
-                                  ? NerveColors.chartbgGreenDark
-                                  : NerveColors.chartbgGreenLigth,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: SvgPicture.asset(
-                          'lib/Resources/Images/line_chart.svg',
-                          width: 74,
-                          height: 16,
+                      _buildCompanyLogo(item.symbol),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item.symbol,
+                              style: NerveStyles.black_bold_16(isDarkMode),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '\$${item.price.toStringAsFixed(2)}',
+                              style: NerveStyles.grey_medium_13(isDarkMode),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 6),
-                      Wrap(
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            decoration: BoxDecoration(
+                              color:
+                                  isDarkMode
+                                      ? NerveColors.chartbgGreenDark
+                                      : NerveColors.chartbgGreenLigth,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: SvgPicture.asset(
+                              'lib/Resources/Images/line_chart.svg',
+                              width: 74,
+                              height: 16,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Wrap(
+                            children: [
+                              Text(
+                                '${isPositive ? '+' : ''}${item.changePercent.toStringAsFixed(2)}%',
+                                style: NerveStyles.green_medium_14(
+                                  isDarkMode,
+                                ).copyWith(color: const Color(0xFF27B67A)),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '(${(item.price * 0.08).toStringAsFixed(2)} pts)',
+                                style: NerveStyles.green_medium_12_400(
+                                  isDarkMode,
+                                ).copyWith(color: const Color(0xFF27B67A)),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(width: 16),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text(
-                            '${isPositive ? '+' : ''}${item.changePercent.toStringAsFixed(2)}%',
-                            style: NerveStyles.green_medium_14(
-                              isDarkMode,
-                            ).copyWith(color: const Color(0xFF27B67A)),
+                            'B ${(item.price + 552.17).toStringAsFixed(2)}',
+                            style: NerveStyles.grey_medium_13(isDarkMode),
                           ),
-                          const SizedBox(width: 4),
+                          const SizedBox(height: 8),
                           Text(
-                            '(${(item.price * 0.08).toStringAsFixed(2)} pts)',
-                            style: NerveStyles.green_medium_12_400(
-                              isDarkMode,
-                            ).copyWith(color: const Color(0xFF27B67A)),
+                            'A ${(item.price + 547.21).toStringAsFixed(2)}',
+                            style: NerveStyles.grey_medium_13(isDarkMode),
                           ),
                         ],
                       ),
                     ],
                   ),
-                  const SizedBox(width: 16),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        'B ${(item.price + 552.17).toStringAsFixed(2)}',
-                        style: NerveStyles.grey_medium_13(isDarkMode),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'A ${(item.price + 547.21).toStringAsFixed(2)}',
-                        style: NerveStyles.grey_medium_13(isDarkMode),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            );
-          }),
-        ],
-      ),
+                );
+              }),
+            ],
+          ),
+        );
+      },
     );
   }
 }

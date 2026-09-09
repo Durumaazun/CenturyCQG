@@ -4,7 +4,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:provider/provider.dart';
 import 'package:century_cqg/Helper/nerve_styles.dart';
 import 'package:century_cqg/Helper/nerve_colors.dart';
-import 'package:century_cqg/Screens/Account/service/account_service.dart';
+import 'package:century_cqg/Screens/Account/accnts_tabs/service/accnts_tab_service.dart';
 import 'package:century_cqg/Helper/nerve_base.dart';
 
 class OverviewTab extends StatelessWidget {
@@ -14,7 +14,7 @@ class OverviewTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDarkMode = NerveBase().isDarkMode;
 
-    return Consumer<AccountService>(
+    return Consumer<AccntsTabService>(
       builder: (context, proValue, child) {
         return SingleChildScrollView(
           child: Column(
@@ -35,7 +35,7 @@ class OverviewTab extends StatelessWidget {
     );
   }
 
-  Widget portfolioView(isDarkMode, proValue) {
+  Widget portfolioView(bool isDarkMode, AccntsTabService proValue) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
       color: isDarkMode ? const Color(0xFF0D110F) : Colors.white,
@@ -245,17 +245,17 @@ class OverviewTab extends StatelessWidget {
                   crossAxisSpacing: 10,
                   childAspectRatio: 1.6,
                   children: [
-                    _MetricCard(
+                    MetricCard(
                       isDarkMode: isDarkMode,
                       label: 'Total Margin',
                       value: '257.07',
                     ),
-                    _MetricCard(
+                    MetricCard(
                       isDarkMode: isDarkMode,
                       label: 'Margin Call',
                       value: '257.07',
                     ),
-                    _MetricCard(
+                    MetricCard(
                       isDarkMode: isDarkMode,
                       label: 'Std. Close Out',
                       value: '257.07',
@@ -345,7 +345,7 @@ class OverviewTab extends StatelessWidget {
     );
   }
 
-  Widget topPositionView(bool isDarkMode, AccountService proValue) {
+  Widget topPositionView(bool isDarkMode, AccntsTabService proValue) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
@@ -524,7 +524,7 @@ class OverviewTab extends StatelessWidget {
     );
   }
 
-  Widget allocationView(bool isDarkMode, AccountService proValue) {
+  Widget allocationView(bool isDarkMode, AccntsTabService proValue) {
     final dividerColor =
         isDarkMode ? const Color(0xFF202220) : NerveColors.containerBorderColor;
 
@@ -761,12 +761,12 @@ class OverviewTab extends StatelessWidget {
   }
 }
 
-class _MetricCard extends StatelessWidget {
+class MetricCard extends StatelessWidget {
   final bool isDarkMode;
   final String label;
   final String value;
 
-  const _MetricCard({
+  const MetricCard({
     required this.isDarkMode,
     required this.label,
     required this.value,
@@ -801,4 +801,3 @@ class _MetricCard extends StatelessWidget {
     );
   }
 }
-

@@ -10,6 +10,13 @@ class WatchlistService extends ChangeNotifier {
   int _selectedTabIndex = 0;
   Future<void>? _loadFuture;
 
+  bool _isEditing = false;
+  bool _isRenamingInline = false;
+  String? _editingWatchlistName;
+  List<Tuple2<String, WatchlistItem>> _editableItems = [];
+  Set<String> _selectedAddToWatchlistNames = {};
+  String? _createWatchlistErrorText;
+
   final Map<String, List<WatchlistItem>> _watchlistItemsMap = {
     'Favourites': [
       const WatchlistItem(
@@ -62,6 +69,14 @@ class WatchlistService extends ChangeNotifier {
     }
     return _selectedTabIndex;
   }
+
+  bool get isEditing => _isEditing;
+  bool get isRenamingInline => _isRenamingInline;
+  String? get editingWatchlistName => _editingWatchlistName;
+  List<Tuple2<String, WatchlistItem>> get editableItems =>
+      List.unmodifiable(_editableItems);
+  Set<String> get selectedAddToWatchlistNames => _selectedAddToWatchlistNames;
+  String? get createWatchlistErrorText => _createWatchlistErrorText;
 
   List<WatchlistItem> getWatchlistItems() {
     return getWatchlistItemsFor(selectedWatchlistName);
@@ -128,6 +143,102 @@ class WatchlistService extends ChangeNotifier {
       list.insert(newIndex, item);
       notifyListeners();
     }
+  }
+
+  void startInlineRename() {
+    _isRenamingInline = true;
+    notifyListeners();
+  }
+
+  void stopInlineRename() {
+    _isRenamingInline = false;
+    notifyListeners();
+  }
+
+  Future<bool> submitInlineRename(String newName) async {
+    final trimmed = newName.trim();
+    bool success = true;
+    if (trimmed.isNotEmpty && trimmed != selectedWatchlistName) {
+      success = await renameSelectedWatchlist(trimmed);
+    }
+    _isRenamingInline = false;
+    notifyListeners();
+    return success;
+  }
+
+  void enterEditMode() {
+    _isEditing = true;
+    _editingWatchlistName = selectedWatchlistName;
+    final items = getWatchlistItemsFor(selectedWatchlistName);
+    _editableItems =
+        items
+            .asMap()
+            .entries
+            .map(
+              (e) => Tuple2<String, WatchlistItem>(
+                '${e.key}_${e.value.symbol}_${DateTime.now().millisecondsSinceEpoch}',
+                e.value,
+              ),
+            )
+            .toList();
+    notifyListeners();
+  }
+
+  void removeEditableItem(int index) {
+    if (index >= 0 && index < _editableItems.length) {
+      _editableItems.removeAt(index);
+      notifyListeners();
+    }
+  }
+
+  void reorderEditableItem(int oldIndex, int newIndex) {
+    if (newIndex > oldIndex) {
+      newIndex -= 1;
+    }
+    final item = _editableItems.removeAt(oldIndex);
+    _editableItems.insert(newIndex, item);
+    notifyListeners();
+  }
+
+  void saveChanges() {
+    if (_editingWatchlistName != null) {
+      setWatchlistItemsFor(
+        _editingWatchlistName!,
+        _editableItems.map((e) => e.item2).toList(),
+      );
+    }
+    _isEditing = false;
+    _editingWatchlistName = null;
+    _editableItems = [];
+    notifyListeners();
+  }
+
+  void cancelEditMode() {
+    _isEditing = false;
+    _editingWatchlistName = null;
+    _editableItems = [];
+    notifyListeners();
+  }
+
+  void initAddToWatchlistSelection() {
+    _selectedAddToWatchlistNames = {
+      if (_watchedLists.isNotEmpty) _watchedLists[selectedTabIndex],
+    };
+    notifyListeners();
+  }
+
+  void toggleAddToWatchlistSelection(String name) {
+    if (_selectedAddToWatchlistNames.contains(name)) {
+      _selectedAddToWatchlistNames.remove(name);
+    } else {
+      _selectedAddToWatchlistNames.add(name);
+    }
+    notifyListeners();
+  }
+
+  void setCreateWatchlistError(String? error) {
+    _createWatchlistErrorText = error;
+    notifyListeners();
   }
 
   Future<void> loadWatchedLists() {

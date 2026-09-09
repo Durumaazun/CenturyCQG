@@ -1,15 +1,14 @@
 import 'package:century_cqg/Helper/nerve_base.dart';
 import 'package:century_cqg/Helper/nerve_navigation.dart';
 import 'package:century_cqg/Screens/Account/service/account_service.dart';
+import 'package:century_cqg/Screens/Account/accnts_tabs/service/accnts_tab_service.dart';
+import 'package:century_cqg/Screens/Account/accnts_tabs/ui/stock_details_page.dart';
 import 'package:century_cqg/Screens/Dashboard/service/dasboard_service.dart';
 import 'package:century_cqg/Screens/Login/service/login_service.dart';
 import 'package:century_cqg/Screens/Watchlist/service/watchlist_service.dart';
 import 'package:century_cqg/Screens/Search/service/search_service.dart';
-import 'package:century_cqg/Screens/Trade/Execution/service/execution_service.dart'
-    as trade_execution;
 import 'package:century_cqg/Screens/Trade/History/service/history_service.dart';
-import 'package:century_cqg/Screens/Trade/History/service/execution_service.dart'
-    as history_execution;
+import 'package:century_cqg/Screens/Trade/Execution/service/execution_service.dart';
 import 'package:century_cqg/Screens/Trade/Holdings/service/holding_service.dart';
 import 'package:century_cqg/Screens/Trade/service/trade_page_service.dart';
 import 'package:century_cqg/Screens/Trade/service/trade_service.dart';
@@ -32,6 +31,12 @@ void main() async {
           create: (_) => WatchlistService(),
         ),
         ChangeNotifierProvider<AccountService>(create: (_) => AccountService()),
+        ChangeNotifierProvider<AccntsTabService>(
+          create: (_) => AccntsTabService(),
+        ),
+        ChangeNotifierProvider<StockDetailsProvider>(
+          create: (_) => StockDetailsProvider(),
+        ),
         ChangeNotifierProvider<SearchService>(create: (_) => SearchService()),
         ChangeNotifierProvider<LoginService>(create: (_) => LoginService()),
         ChangeNotifierProvider<TradeService>(create: (_) => TradeService()),
@@ -43,11 +48,8 @@ void main() async {
         ),
         ChangeNotifierProvider<HoldingService>(create: (_) => HoldingService()),
         ChangeNotifierProvider<HistoryService>(create: (_) => HistoryService()),
-        ChangeNotifierProvider<trade_execution.ExecutionService>(
-          create: (_) => trade_execution.ExecutionService(),
-        ),
-        ChangeNotifierProvider<history_execution.ExecutionService>(
-          create: (_) => history_execution.ExecutionService(),
+        ChangeNotifierProvider<ExecutionService>(
+          create: (_) => ExecutionService(),
         ),
         ChangeNotifierProvider<OptionChainNotifier>(
           create: (_) => OptionChainNotifier(),
