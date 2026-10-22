@@ -36,7 +36,6 @@ dependencies:
   protobuf: ^3.1.0
   http: ^1.1.0
   shared_preferences: ^2.3.2
-  # fl_chart: ^0.69.2
   fl_chart: ^0.70.2
   table_calendar: ^3.1.3
   # The following adds the Cupertino Icons font to your application.
@@ -47,6 +46,8 @@ dependencies:
       url: https://github.com/nervesolutions/Flutter-Chart-Package.git
       ref: f426976486cdce07e391d3128cc50a0ecb2ff5bf
       path: chart_package
+  tuple: ^2.0.2
+  encrypt: ^5.0.3
 
 dev_dependencies:
   flutter_test:

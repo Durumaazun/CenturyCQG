@@ -320,12 +320,12 @@ class HoldingPage extends StatelessWidget {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) {
-        var selectedTime = 'Today';
-        var selectedSymbol = 'AAPL';
-        var selectedType = 'Index';
+        return Consumer<HoldingService>(
+          builder: (stateContext, holdingService, _) {
+            final selectedTime = holdingService.filterTime;
+            final selectedSymbol = holdingService.filterSymbol;
+            final selectedType = holdingService.filterType;
 
-        return StatefulBuilder(
-          builder: (stateContext, setModalState) {
             return SafeArea(
               top: false,
               child: Container(
@@ -379,7 +379,7 @@ class HoldingPage extends StatelessWidget {
                         chipColor,
                         chipTextColor,
                         selectedColor,
-                        (value) => setModalState(() => selectedTime = value),
+                        (value) => holdingService.setFilterTime(value),
                       ),
                       const SizedBox(height: 23),
                       _filterSectionLabel('SYMBOL NAME', labelColor),
@@ -400,7 +400,7 @@ class HoldingPage extends StatelessWidget {
                         chipColor,
                         chipTextColor,
                         selectedColor,
-                        (value) => setModalState(() => selectedSymbol = value),
+                        (value) => holdingService.setFilterSymbol(value),
                       ),
                       const SizedBox(height: 23),
                       _filterSectionLabel('SYMBOL TYPE', labelColor),
@@ -419,7 +419,7 @@ class HoldingPage extends StatelessWidget {
                         chipColor,
                         chipTextColor,
                         selectedColor,
-                        (value) => setModalState(() => selectedType = value),
+                        (value) => holdingService.setFilterType(value),
                       ),
                     ],
                   ),
@@ -487,4 +487,3 @@ class HoldingPage extends StatelessWidget {
     );
   }
 }
-

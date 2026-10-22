@@ -160,226 +160,232 @@ class _OptionChainPageState extends State<OptionChainPage> {
         surfaceTintColor: Colors.transparent,
         actions: [IconButton(icon: const Icon(Icons.search), onPressed: () {})],
       ),
-      body: Consumer<OptionChainNotifier>(
-        builder: (context, notifierValue, _) {
-          final state = notifierValue.state;
-          final notifier = notifierValue;
-          final optionChainData = OptionChainService().getOptionChainData();
+      body: SafeArea(
+        child: Consumer<OptionChainNotifier>(
+          builder: (context, notifierValue, _) {
+            final state = notifierValue.state;
+            final notifier = notifierValue;
+            final optionChainData = OptionChainService().getOptionChainData();
 
-          return Column(
-            children: [
-              const SizedBox(height: 12),
-              _buildStockHeader(context, state, notifier, optionChainData),
-              _buildTopSectionBanner(),
-              // Pinned Fixed Header Row (Horizontal scroll only, never scrolls vertically)
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      controller: _headerLeftScrollController,
-                      child: SizedBox(
-                        width: _columnWidth * 6,
-                        child: _buildCallHeader(),
-                      ),
-                    ),
-                  ),
-                  SizedBox(
-                    width: _strikeWidth,
-                    child: _buildStrikeHeader(state, notifier),
-                  ),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      controller: _headerRightScrollController,
-                      child: SizedBox(
-                        width: _columnWidth * 6,
-                        child: _buildPutHeader(),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              Expanded(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.vertical,
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Left Side: CALLS (CE) - Synchronized Horizontal Scroll
-                      Expanded(
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          controller: _bodyLeftScrollController,
-                          child: SizedBox(
-                            width: _columnWidth * 6,
-                            child: Column(
-                              children: [
-                                ...List.generate(optionChainData.length, (
-                                  index,
-                                ) {
-                                  final data = optionChainData[index];
-                                  final isSelected =
-                                      state.basketEnabled
-                                          ? state.basketRows.contains(index)
-                                          : (state.selectedRowIndex == index &&
-                                              state.selectedType == 'call');
-                                  return Column(
-                                    children: [
-                                      if (data['highlight'] == true &&
-                                          state.showSpotPrice)
-                                        Container(
-                                          height: _spotPriceHeight,
-                                          color: Colors.white,
-                                        ),
-                                      _buildCallRow(data, isSelected, () {
-                                        if (state.basketEnabled) {
-                                          if (state.basketRows.contains(
-                                            index,
-                                          )) {
-                                            notifier.removeBasketRow(index);
-                                          } else {
-                                            notifier.addBasketRow(index);
-                                          }
-                                        } else {
-                                          if (state.selectedRowIndex == index &&
-                                              state.selectedType == 'call') {
-                                            notifier.clearSelection();
-                                          } else {
-                                            notifier.setSelectedRowAndType(
-                                              index,
-                                              'call',
-                                            );
-                                          }
-                                        }
-                                      }),
-                                    ],
-                                  );
-                                }),
-                              ],
-                            ),
-                          ),
+            return Column(
+              children: [
+                const SizedBox(height: 12),
+                _buildStockHeader(context, state, notifier, optionChainData),
+                _buildTopSectionBanner(),
+                // Pinned Fixed Header Row (Horizontal scroll only, never scrolls vertically)
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        controller: _headerLeftScrollController,
+                        child: SizedBox(
+                          width: _columnWidth * 6,
+                          child: _buildCallHeader(),
                         ),
                       ),
-                      // Center: FIXED STRIKE (Pinned - does not move horizontally)
-                      SizedBox(
-                        width: _strikeWidth,
-                        child: Column(
-                          children: [
-                            ...List.generate(optionChainData.length, (index) {
-                              final data = optionChainData[index];
-                              final isSelected =
-                                  state.basketEnabled
-                                      ? state.basketRows.contains(index)
-                                      : (state.selectedRowIndex == index);
-                              return Column(
+                    ),
+                    SizedBox(
+                      width: _strikeWidth,
+                      child: _buildStrikeHeader(state, notifier),
+                    ),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        controller: _headerRightScrollController,
+                        child: SizedBox(
+                          width: _columnWidth * 6,
+                          child: _buildPutHeader(),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.vertical,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Left Side: CALLS (CE) - Synchronized Horizontal Scroll
+                        Expanded(
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            controller: _bodyLeftScrollController,
+                            child: SizedBox(
+                              width: _columnWidth * 6,
+                              child: Column(
                                 children: [
-                                  if (data['highlight'] == true &&
-                                      state.showSpotPrice)
-                                    _buildCenterSpotPriceCell(),
-                                  _buildStrikeCell(data, isSelected, () {
-                                    if (state.basketEnabled) {
-                                      if (state.basketRows.contains(index)) {
-                                        notifier.removeBasketRow(index);
-                                      } else {
-                                        notifier.addBasketRow(index);
-                                      }
-                                    } else {
-                                      if (state.selectedRowIndex == index) {
-                                        notifier.clearSelection();
-                                      } else {
-                                        notifier.setSelectedRowAndType(
-                                          index,
-                                          state.selectedType,
-                                        );
-                                      }
-                                    }
+                                  ...List.generate(optionChainData.length, (
+                                    index,
+                                  ) {
+                                    final data = optionChainData[index];
+                                    final isSelected =
+                                        state.basketEnabled
+                                            ? state.basketRows.contains(index)
+                                            : (state.selectedRowIndex ==
+                                                    index &&
+                                                state.selectedType == 'call');
+                                    return Column(
+                                      children: [
+                                        if (data['highlight'] == true &&
+                                            state.showSpotPrice)
+                                          Container(
+                                            height: _spotPriceHeight,
+                                            color: Colors.white,
+                                          ),
+                                        _buildCallRow(data, isSelected, () {
+                                          if (state.basketEnabled) {
+                                            if (state.basketRows.contains(
+                                              index,
+                                            )) {
+                                              notifier.removeBasketRow(index);
+                                            } else {
+                                              notifier.addBasketRow(index);
+                                            }
+                                          } else {
+                                            if (state.selectedRowIndex ==
+                                                    index &&
+                                                state.selectedType == 'call') {
+                                              notifier.clearSelection();
+                                            } else {
+                                              notifier.setSelectedRowAndType(
+                                                index,
+                                                'call',
+                                              );
+                                            }
+                                          }
+                                        }),
+                                      ],
+                                    );
                                   }),
                                 ],
-                              );
-                            }),
-                          ],
-                        ),
-                      ),
-                      // Right Side: PUTS (PE) - Synchronized Horizontal Scroll
-                      Expanded(
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          controller: _bodyRightScrollController,
-                          child: SizedBox(
-                            width: _columnWidth * 6,
-                            child: Column(
-                              children: [
-                                ...List.generate(optionChainData.length, (
-                                  index,
-                                ) {
-                                  final data = optionChainData[index];
-                                  final isSelected =
-                                      state.basketEnabled
-                                          ? state.basketRows.contains(index)
-                                          : (state.selectedRowIndex == index &&
-                                              state.selectedType == 'put');
-                                  return Column(
-                                    children: [
-                                      if (data['highlight'] == true &&
-                                          state.showSpotPrice)
-                                        Container(
-                                          height: _spotPriceHeight,
-                                          color: Colors.white,
-                                        ),
-                                      _buildPutRow(data, isSelected, () {
-                                        if (state.basketEnabled) {
-                                          if (state.basketRows.contains(
-                                            index,
-                                          )) {
-                                            notifier.removeBasketRow(index);
-                                          } else {
-                                            notifier.addBasketRow(index);
-                                          }
-                                        } else {
-                                          if (state.selectedRowIndex == index &&
-                                              state.selectedType == 'put') {
-                                            notifier.clearSelection();
-                                          } else {
-                                            notifier.setSelectedRowAndType(
-                                              index,
-                                              'put',
-                                            );
-                                          }
-                                        }
-                                      }),
-                                    ],
-                                  );
-                                }),
-                              ],
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                        // Center: FIXED STRIKE (Pinned - does not move horizontally)
+                        SizedBox(
+                          width: _strikeWidth,
+                          child: Column(
+                            children: [
+                              ...List.generate(optionChainData.length, (index) {
+                                final data = optionChainData[index];
+                                final isSelected =
+                                    state.basketEnabled
+                                        ? state.basketRows.contains(index)
+                                        : (state.selectedRowIndex == index);
+                                return Column(
+                                  children: [
+                                    if (data['highlight'] == true &&
+                                        state.showSpotPrice)
+                                      _buildCenterSpotPriceCell(),
+                                    _buildStrikeCell(data, isSelected, () {
+                                      if (state.basketEnabled) {
+                                        if (state.basketRows.contains(index)) {
+                                          notifier.removeBasketRow(index);
+                                        } else {
+                                          notifier.addBasketRow(index);
+                                        }
+                                      } else {
+                                        if (state.selectedRowIndex == index) {
+                                          notifier.clearSelection();
+                                        } else {
+                                          notifier.setSelectedRowAndType(
+                                            index,
+                                            state.selectedType,
+                                          );
+                                        }
+                                      }
+                                    }),
+                                  ],
+                                );
+                              }),
+                            ],
+                          ),
+                        ),
+                        // Right Side: PUTS (PE) - Synchronized Horizontal Scroll
+                        Expanded(
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            controller: _bodyRightScrollController,
+                            child: SizedBox(
+                              width: _columnWidth * 6,
+                              child: Column(
+                                children: [
+                                  ...List.generate(optionChainData.length, (
+                                    index,
+                                  ) {
+                                    final data = optionChainData[index];
+                                    final isSelected =
+                                        state.basketEnabled
+                                            ? state.basketRows.contains(index)
+                                            : (state.selectedRowIndex ==
+                                                    index &&
+                                                state.selectedType == 'put');
+                                    return Column(
+                                      children: [
+                                        if (data['highlight'] == true &&
+                                            state.showSpotPrice)
+                                          Container(
+                                            height: _spotPriceHeight,
+                                            color: Colors.white,
+                                          ),
+                                        _buildPutRow(data, isSelected, () {
+                                          if (state.basketEnabled) {
+                                            if (state.basketRows.contains(
+                                              index,
+                                            )) {
+                                              notifier.removeBasketRow(index);
+                                            } else {
+                                              notifier.addBasketRow(index);
+                                            }
+                                          } else {
+                                            if (state.selectedRowIndex ==
+                                                    index &&
+                                                state.selectedType == 'put') {
+                                              notifier.clearSelection();
+                                            } else {
+                                              notifier.setSelectedRowAndType(
+                                                index,
+                                                'put',
+                                              );
+                                            }
+                                          }
+                                        }),
+                                      ],
+                                    );
+                                  }),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              if (state.basketEnabled)
-                _buildBasketSummaryBar(
-                  context,
-                  state,
-                  notifier,
-                  optionChainData,
-                  widget.symbol,
-                )
-              else if (state.selectedRowIndex != null)
-                _buildSingleOptionActionBar(
-                  context,
-                  state,
-                  notifier,
-                  optionChainData,
-                  widget.symbol,
-                ),
-            ],
-          );
-        },
+                if (state.basketEnabled)
+                  _buildBasketSummaryBar(
+                    context,
+                    state,
+                    notifier,
+                    optionChainData,
+                    widget.symbol,
+                  )
+                else if (state.selectedRowIndex != null)
+                  _buildSingleOptionActionBar(
+                    context,
+                    state,
+                    notifier,
+                    optionChainData,
+                    widget.symbol,
+                  ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }

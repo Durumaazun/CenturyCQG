@@ -1,6 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-class BasketAnalysisPage extends StatefulWidget {
+class BasketAnalysisNotifier extends ChangeNotifier {
+  int _selectedTabIndex = 0; // 0 for Summary, 1 for Payoff Graph
+
+  int get selectedTabIndex => _selectedTabIndex;
+
+  void setSelectedTabIndex(int index) {
+    _selectedTabIndex = index;
+    notifyListeners();
+  }
+}
+
+class BasketAnalysisPage extends StatelessWidget {
   final String symbol;
 
   const BasketAnalysisPage({super.key, required this.symbol});
@@ -18,136 +30,142 @@ class BasketAnalysisPage extends StatefulWidget {
   }
 
   @override
-  State<BasketAnalysisPage> createState() => _BasketAnalysisPageState();
-}
-
-class _BasketAnalysisPageState extends State<BasketAnalysisPage> {
-  int _selectedTabIndex = 0; // 0 for Summary, 1 for Payoff Graph
-
-  @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: const EdgeInsets.only(top: 24),
-        child: ClipRRect(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          child: Material(
-            color: Colors.white,
-            child: SizedBox(
-              height: MediaQuery.of(context).size.height * 0.72,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 10),
+    return ChangeNotifierProvider(
+      create: (_) => BasketAnalysisNotifier(),
+      child: Consumer<BasketAnalysisNotifier>(
+        builder: (context, notifier, _) {
+          final selectedTabIndex = notifier.selectedTabIndex;
 
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Row(
+          return SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.only(top: 24),
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(20),
+                ),
+                child: Material(
+                  color: Colors.white,
+                  child: SizedBox(
+                    height: MediaQuery.of(context).size.height * 0.72,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        IconButton(
-                          icon: const Icon(
-                            Icons.arrow_back,
-                            size: 20,
-                            color: Colors.black,
+                        const SizedBox(height: 10),
+
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: Row(
+                            children: [
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.arrow_back,
+                                  size: 20,
+                                  color: Colors.black,
+                                ),
+                                onPressed: () => Navigator.pop(context),
+                              ),
+                              Text(
+                                '$symbol BASKET ANALYSIS',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.5,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ],
                           ),
-                          onPressed: () => Navigator.pop(context),
                         ),
-                        Text(
-                          '${widget.symbol} BASKET ANALYSIS',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.5,
-                            color: Colors.black87,
+                        const SizedBox(height: 16),
+                        // Toggle Buttons (Summary / Payoff Graph)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 18),
+                          child: Row(
+                            children: [
+                              _buildTabButton(notifier, 0, 'Summary'),
+                              const SizedBox(width: 12),
+                              _buildTabButton(notifier, 1, 'Payoff Graph'),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        // Legend: Today (Blue) & Expiry Date (Brown/Red)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 8,
+                                height: 8,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFF1E88E5),
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              const Text(
+                                'Today',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(width: 24),
+                              Container(
+                                width: 8,
+                                height: 8,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFF8D2B1C),
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              const Text(
+                                'Expiry Date',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        // Main Body
+                        Expanded(
+                          child: SingleChildScrollView(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child:
+                                selectedTabIndex == 0
+                                    ? _buildSummaryContent()
+                                    : _buildPayoffGraphContent(),
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  // Toggle Buttons (Summary / Payoff Graph)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 18),
-                    child: Row(
-                      children: [
-                        _buildTabButton(0, 'Summary'),
-                        const SizedBox(width: 12),
-                        _buildTabButton(1, 'Payoff Graph'),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  // Legend: Today (Blue) & Expiry Date (Brown/Red)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFF1E88E5),
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        const Text(
-                          'Today',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(width: 24),
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFF8D2B1C),
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        const Text(
-                          'Expiry Date',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  // Main Body
-                  Expanded(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child:
-                          _selectedTabIndex == 0
-                              ? _buildSummaryContent()
-                              : _buildPayoffGraphContent(),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildTabButton(int index, String label) {
-    final isSelected = _selectedTabIndex == index;
+  Widget _buildTabButton(
+    BasketAnalysisNotifier notifier,
+    int index,
+    String label,
+  ) {
+    final isSelected = notifier.selectedTabIndex == index;
     return GestureDetector(
       onTap: () {
-        setState(() {
-          _selectedTabIndex = index;
-        });
+        notifier.setSelectedTabIndex(index);
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),

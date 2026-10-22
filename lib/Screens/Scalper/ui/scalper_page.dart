@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:chart_package/flutter_chart_package.dart';
+import 'package:century_cqg/Helper/nerve_base.dart';
+import 'package:century_cqg/Screens/Dashboard/service/dasboard_service.dart';
 
 class ScalperPage extends StatefulWidget {
   const ScalperPage({super.key});
@@ -14,35 +16,54 @@ class _ScalperPageState extends State<ScalperPage> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<DashboardService>();
+    final isDarkMode = NerveBase().isDarkMode;
     final bool isLandscape =
         MediaQuery.of(context).orientation == Orientation.landscape;
 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: Column(
-        children: [
-          // Chart Section
-          Expanded(
-            child: Navigator(
-              key: _navigatorKey,
-              onGenerateRoute:
-                  (settings) => MaterialPageRoute(
-                    builder:
-                        (_) =>
-                            //     TradePage(
-                            //   symbol: 'RELIANCE',
-                            //   exchange: 'NSE',
-                            //   token: '2885',
-                            // ),
-                            const InitialPage(),
-                  ),
-            ),
+    return Theme(
+      data: isDarkMode ? ThemeData.dark() : ThemeData.light(),
+      child: Scaffold(
+        backgroundColor: isDarkMode ? const Color(0xFF0D110F) : Colors.white,
+        body: SafeArea(
+          child: Column(
+            children: [
+              // Chart Section
+              Expanded(
+                child:
+                    isDarkMode
+                        ? ColorFiltered(
+                          colorFilter: const ColorFilter.matrix(<double>[
+                            // Converts white chart background to black theme and icons to white,
+                            // while strictly preserving green and red candlestick bar colors
+                            0.0, -0.90, -0.10, 0.0, 255.0,
+                            -0.90, 0.0, -0.10, 0.0, 255.0,
+                            -0.80, -0.80, 0.60, 0.0, 255.0,
+                            0.0, 0.0, 0.0, 1.0, 0.0,
+                          ]),
+                          child: Navigator(
+                            key: _navigatorKey,
+                            onGenerateRoute:
+                                (settings) => MaterialPageRoute(
+                                  builder: (_) => const InitialPage(),
+                                ),
+                          ),
+                        )
+                        : Navigator(
+                          key: _navigatorKey,
+                          onGenerateRoute:
+                              (settings) => MaterialPageRoute(
+                                builder: (_) => const InitialPage(),
+                              ),
+                        ),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
 
-      /// Use bottomNavigationBar to ensure it stays at the bottom and doesn't get pushed by Inner Scaffolds
-      bottomNavigationBar: isLandscape ? null : const ScalperControls(),
+        /// Use bottomNavigationBar to ensure it stays at the bottom and doesn't get pushed by Inner Scaffolds
+        bottomNavigationBar: isLandscape ? null : const ScalperControls(),
+      ),
     );
   }
 }
@@ -77,24 +98,36 @@ class _ScalperControlsBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<DashboardService>();
+    final isDarkMode = NerveBase().isDarkMode;
     final selectedTab = context.watch<ScalperControlsProvider>().selectedTab;
+
+    final bgColor =
+        isDarkMode ? const Color(0xFF0D110F) : const Color(0xFFFFFFFF);
+    final borderColor =
+        isDarkMode ? const Color(0xFF282D2A) : const Color(0xFFEAEAEA);
+    final primaryTextColor =
+        isDarkMode ? Colors.white : const Color(0xB2000000);
+    final secondaryTextColor =
+        isDarkMode ? Colors.white : const Color(0x80000000);
+    final iconColor = isDarkMode ? Colors.white : Colors.grey.shade700;
 
     return Material(
       elevation: 8,
-      color: Colors.white,
+      color: bgColor,
       child: SafeArea(
         top: false,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
           decoration: BoxDecoration(
-            color: const Color(0xFFFFFFFF),
-            border: Border(top: BorderSide(color: const Color(0xFFEAEAEA))),
+            color: bgColor,
+            border: Border(top: BorderSide(color: borderColor)),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               // Navigation Tabs
-              _buildTabs(context, selectedTab),
+              _buildTabs(context, selectedTab, isDarkMode),
 
               const SizedBox(height: 12),
               // Symbol and Exit Row
@@ -108,14 +141,14 @@ class _ScalperControlsBody extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
-                          color: const Color(0xB2000000),
+                          color: primaryTextColor,
                         ),
                       ),
                       const SizedBox(width: 8),
                       Icon(
                         Icons.keyboard_arrow_down,
                         size: 20,
-                        color: Colors.grey.shade700,
+                        color: iconColor,
                       ),
                     ],
                   ),
@@ -124,7 +157,7 @@ class _ScalperControlsBody extends StatelessWidget {
                       Text(
                         '0',
                         style: TextStyle(
-                          color: const Color(0x80000000),
+                          color: secondaryTextColor,
                           fontSize: 16,
                           fontWeight: FontWeight.w400,
                         ),
@@ -133,7 +166,7 @@ class _ScalperControlsBody extends StatelessWidget {
                       Text(
                         'Exit',
                         style: TextStyle(
-                          color: const Color(0x80000000),
+                          color: secondaryTextColor,
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
                         ),
@@ -147,23 +180,23 @@ class _ScalperControlsBody extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _buildValueWithRefresh('\$1,959'),
+                  _buildValueWithRefresh('\$1,959', secondaryTextColor),
                   Text(
                     'QTY (1 LOT)',
                     style: TextStyle(
-                      color: const Color(0x80000000),
+                      color: secondaryTextColor,
                       fontSize: 12,
                       fontWeight: FontWeight.w400,
                     ),
                   ),
-                  _buildValueWithRefresh('\$207,065'),
+                  _buildValueWithRefresh('\$207,065', secondaryTextColor),
                 ],
               ),
 
               const SizedBox(height: 12),
 
               // Buttons and Quantity Row
-              _buildBuySellButton(),
+              _buildBuySellButton(primaryTextColor),
 
               const SizedBox(height: 12),
 
@@ -174,7 +207,7 @@ class _ScalperControlsBody extends StatelessWidget {
                   Text(
                     'Total P&L: \$21,345.00',
                     style: TextStyle(
-                      color: const Color(0x80000000),
+                      color: secondaryTextColor,
                       fontSize: 12,
                       fontWeight: FontWeight.w400,
                     ),
@@ -182,7 +215,7 @@ class _ScalperControlsBody extends StatelessWidget {
                   Text(
                     'Balance: \$83,711.00',
                     style: TextStyle(
-                      color: const Color(0x80000000),
+                      color: secondaryTextColor,
                       fontSize: 12,
                       fontWeight: FontWeight.w400,
                     ),
@@ -196,12 +229,13 @@ class _ScalperControlsBody extends StatelessWidget {
     );
   }
 
-  Widget _buildTabs(BuildContext context, String selectedTab) {
+  Widget _buildTabs(BuildContext context, String selectedTab, bool isDarkMode) {
     return Row(
       children: [
         _buildTabChip(
           title: 'Option Chain',
           isSelected: selectedTab == 'Option Chain',
+          isDarkMode: isDarkMode,
           onTap: () {
             context.read<ScalperControlsProvider>().setSelectedTab(
               'Option Chain',
@@ -221,6 +255,7 @@ class _ScalperControlsBody extends StatelessWidget {
         _buildTabChip(
           title: 'Positions',
           isSelected: selectedTab == 'Positions',
+          isDarkMode: isDarkMode,
           onTap: () {
             context.read<ScalperControlsProvider>().setSelectedTab('Positions');
             // TODO: Navigate to Positions Screen
@@ -238,6 +273,7 @@ class _ScalperControlsBody extends StatelessWidget {
         _buildTabChip(
           title: 'Orders',
           isSelected: selectedTab == 'Orders',
+          isDarkMode: isDarkMode,
           onTap: () {
             context.read<ScalperControlsProvider>().setSelectedTab('Orders');
             // TODO: Navigate to Orders Screen
@@ -255,7 +291,7 @@ class _ScalperControlsBody extends StatelessWidget {
     );
   }
 
-  _buildBuySellButton() {
+  _buildBuySellButton(Color quantityTextColor) {
     return Row(
       children: [
         Expanded(
@@ -277,7 +313,7 @@ class _ScalperControlsBody extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 15),
-        _buildQuantitySelector(),
+        _buildQuantitySelector(quantityTextColor),
         const SizedBox(width: 15),
         Expanded(
           child: ElevatedButton(
@@ -304,65 +340,75 @@ class _ScalperControlsBody extends StatelessWidget {
   Widget _buildTabChip({
     required String title,
     required bool isSelected,
+    required bool isDarkMode,
     required VoidCallback onTap,
   }) {
+    final chipBg =
+        isSelected
+            ? const Color(0xFFF2C400)
+            : (isDarkMode ? const Color(0xFF1D2321) : const Color(0xFFFFFFFF));
+    final chipBorder =
+        isSelected
+            ? const Color(0xFFF2C400)
+            : (isDarkMode ? const Color(0xFF282D2A) : const Color(0xFFEAEAEA));
+    final textColor =
+        isSelected
+            ? const Color(0xFF2A2A2A)
+            : (isDarkMode ? Colors.white : const Color(0xB2000000));
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(20),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFF2C400) : const Color(0xFFFFFFFF),
+          color: chipBg,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color:
-                isSelected ? const Color(0xFFF2C400) : const Color(0xFFEAEAEA),
-            width: 1,
-          ),
+          border: Border.all(color: chipBorder, width: 1),
         ),
         child: Text(
           title,
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w400,
-            color: const Color(0xB2000000),
+            color: textColor,
           ),
         ),
       ),
     );
   }
 
-  Widget _buildValueWithRefresh(String value) {
+  Widget _buildValueWithRefresh(String value, Color textColor) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           value,
           style: TextStyle(
-            color: const Color(0x80000000),
+            color: textColor,
             fontSize: 12,
             fontWeight: FontWeight.w400,
           ),
         ),
         const SizedBox(width: 6),
-        const Icon(Icons.refresh, color: const Color(0xFFF2C400), size: 15),
+        const Icon(Icons.refresh, color: Color(0xFFF2C400), size: 15),
       ],
     );
   }
 
-  Widget _buildQuantitySelector() {
+  Widget _buildQuantitySelector(Color quantityTextColor) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         _buildStepButton(Icons.remove),
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 19),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 19),
           child: Text(
             '65',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
-              color: Color(0xB2000000),
+              color: quantityTextColor,
             ),
           ),
         ),

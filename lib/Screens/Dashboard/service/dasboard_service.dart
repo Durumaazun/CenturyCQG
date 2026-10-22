@@ -1,17 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:century_cqg/Screens/Dashboard/model/dashboard_models.dart';
+import 'package:century_cqg/Screens/Dashboard/model/account_summary_response_model.dart';
+import 'package:century_cqg/Screens/Dashboard/model/activity_feed_item.dart';
+import 'package:century_cqg/Screens/Dashboard/model/market_updates_response_model.dart';
 import 'package:century_cqg/Screens/Dashboard/model/stocks_detail_model.dart';
-import 'package:century_cqg/Screens/Dashboard/model/top_view_stocks.dart';
 import 'package:century_cqg/Helper/nerve_base.dart';
+import 'package:century_cqg/Screens/Dashboard/service/dashboard_repository.dart';
+import 'package:century_cqg/Network/network_manager.dart';
+import 'package:century_cqg/app_config.dart';
 
 class DashboardService extends ChangeNotifier {
+  final _repository = DashboardRepository();
+
   int _selectedHomeTabIndex = 0;
-  int _initialTradeTabIndex = 0;
   bool _isFromDetails = false;
+  int _selectedTrendingCategory = 0;
 
   int get selectedHomeTabIndex => _selectedHomeTabIndex;
-  int get initialTradeTabIndex => _initialTradeTabIndex;
   bool get isFromDetails => _isFromDetails;
+  int get selectedTrendingCategory => _selectedTrendingCategory;
 
   void setSelectedHomeTabIndex(int index) {
     if (_selectedHomeTabIndex == index) {
@@ -21,8 +28,11 @@ class DashboardService extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setInitialTradeTabIndex(int index) {
-    _initialTradeTabIndex = index;
+  void setSelectedTrendingCategory(int index) {
+    if (_selectedTrendingCategory == index) {
+      return;
+    }
+    _selectedTrendingCategory = index;
     notifyListeners();
   }
 
@@ -31,21 +41,38 @@ class DashboardService extends ChangeNotifier {
     notifyListeners();
   }
 
-  void resetInitialTradeTabIndex() {
-    _initialTradeTabIndex = 0;
-  }
+  AccountSummaryResponseModel _accountSummary =
+      const AccountSummaryResponseModel();
+  AccountSummaryResponseModel get accountSummary => _accountSummary;
 
-  void resetIsFromDetails() {
-    _isFromDetails = false;
-  }
+  String? _accountSummaryError;
+  String? get accountSummaryError => _accountSummaryError;
 
-  late AccountSummary _accountSummary;
-  late List<Stock> _watchedStocks;
-  late List<Position> _topPositions;
+  final List<Stock> _watchedStocks = [];
+  List<Stock> get watchedStocks => _watchedStocks;
 
-  DashboardService() {
-    _initializeData();
-  }
+  final List<Position> _topPositions = [];
+  List<Position> get topPositions => _topPositions;
+
+  final List<ActivityFeedItem> _activityFeed = [];
+  List<ActivityFeedItem> get activityFeed => List.unmodifiable(_activityFeed);
+
+  bool _isActivityFeedLoading = false;
+  bool get isActivityFeedLoading => _isActivityFeedLoading;
+
+  String? _activityFeedError;
+  String? get activityFeedError => _activityFeedError;
+
+  final List<StockItem> _marketUpdates = [];
+  List<StockItem> get marketUpdates => List.unmodifiable(_marketUpdates);
+
+  bool _isMarketUpdatesLoading = false;
+  bool get isMarketUpdatesLoading => _isMarketUpdatesLoading;
+
+  String? _marketUpdatesError;
+  String? get marketUpdatesError => _marketUpdatesError;
+
+  int _marketUpdatesRequestId = 0;
 
   void setDarkMode(bool value) {
     if (NerveBase().isDarkMode == value) return;
@@ -57,201 +84,181 @@ class DashboardService extends ChangeNotifier {
     setDarkMode(!NerveBase().isDarkMode);
   }
 
-  AccountSummary get accountSummary => _accountSummary;
-  List<Stock> get watchedStocks => _watchedStocks;
-  List<Position> get topPositions => _topPositions;
+  Future<void> callAccountSummary(BuildContext context) async {
+    _accountSummaryError = null;
+    final response = await _repository.fetchAccountSummary(context);
+    if (response == null) {
+      _accountSummaryError = 'No account summary response was received.';
+      notifyListeners();
+      return;
+    }
 
-  void _initializeData() {
-    _accountSummary = AccountSummary(
-      cashBalance: '\$84,250.00',
-      buyingPower: '\$168,500',
-      buyingPowerUnrealized: 'Unrealized P&L',
-      buyingPowerUnrealizedValue: '+\$1,842',
-      marginUsed: '\$42,100',
-      marginUsedRealized: 'Realized P&L',
-      marginUsedRealizedValue: '+\$3,215',
-    );
+    if (response is NetworkResponse) {
+      _accountSummaryError =
+          'Unable to load account summary (${response.statusCode}).';
+      notifyListeners();
+      return;
+    }
 
-    _watchedStocks = [
-      Stock(
-        symbol: 'AAPL',
-        logo: '🍎',
-        price: '\$577.87',
-        change: '+3.76%',
-        changePoints: '+4.89 pts',
-        minPrice: '1130.04',
-        maxPrice: '1125.08',
-      ),
-      Stock(
-        symbol: 'TSLA',
-        logo: '🚙',
-        price: '\$577.87',
-        change: '+3.76%',
-        changePoints: '+4.89 pts',
-        minPrice: '1130.04',
-        maxPrice: '1125.08',
-      ),
-      Stock(
-        symbol: 'NVDA',
-        logo: '⚙️',
-        price: '\$577.87',
-        change: '+3.76%',
-        changePoints: '+4.89 pts',
-        minPrice: '1130.04',
-        maxPrice: '1125.08',
-      ),
-    ];
+    Object? summaryResponse = response;
+    if (response is List && response.isNotEmpty) {
+      summaryResponse = response.first;
+    }
 
-    _topPositions = [
-      Position(
-        symbol: 'AAPL',
-        type: 'BUY',
-        quantity: 100,
-        avgPrice: '\$00,000.00',
-        value: '\$3,000.00',
-        ltp: '0,000.00',
-      ),
-      Position(
-        symbol: 'TSLA',
-        type: 'BUY',
-        quantity: 100,
-        avgPrice: '\$00,000.00',
-        value: '\$3,000.00',
-        ltp: '0,000.00',
-      ),
-      Position(
-        symbol: 'NVDA',
-        type: 'BUY',
-        quantity: 100,
-        avgPrice: '\$00,000.00',
-        value: '\$3,000.00',
-        ltp: '0,000.00',
-      ),
-    ];
-  }
+    if (summaryResponse is Map) {
+      final parsedResponse = AccountSummaryResponseModel.fromJson(
+        Map<String, dynamic>.from(summaryResponse),
+      );
+      if (parsedResponse.currency.isNotEmpty) {
+        _accountSummary = parsedResponse;
+      } else {
+        _accountSummaryError = 'Account summary response is invalid.';
+      }
+    } else {
+      _accountSummaryError = 'No account summary data was returned.';
+    }
 
-  void updateAccountSummary(AccountSummary summary) {
-    _accountSummary = summary;
     notifyListeners();
   }
 
-  void updateWatchedStocks(List<Stock> stocks) {
-    _watchedStocks = stocks;
+  Future<void> callWatchedStocks(BuildContext context) async {
+    final response = await _repository.fetchWatchedStocks(context);
+    _watchedStocks.clear();
+    if ((response != null) && (response is List)) {
+      final data = response.map((e) => Stock.fromJson(e)).toList();
+
+      _watchedStocks.addAll(data);
+    }
+
     notifyListeners();
+  }
+
+  Future<void> callMarketUpdates(
+    BuildContext context, {
+    required String category,
+  }) async {
+    final requestId = ++_marketUpdatesRequestId;
+    _isMarketUpdatesLoading = true;
+    _marketUpdatesError = null;
+    notifyListeners();
+
+    try {
+      final response = await _repository.fetchMarketUpdates(
+        context,
+        category: category,
+      );
+      if (requestId != _marketUpdatesRequestId) return;
+
+      if (response is NetworkResponse) {
+        _marketUpdates.clear();
+        _marketUpdatesError =
+            'Unable to load market movers (${response.statusCode}).';
+        return;
+      }
+
+      final responseData =
+          response is List
+              ? response
+              : response is Map && response['data'] is List
+              ? response['data'] as List
+              : null;
+      if (responseData == null) {
+        _marketUpdates.clear();
+        _marketUpdatesError = 'The market mover response is invalid.';
+        return;
+      }
+
+      final marketMoverResponse = MarketMoverModel.fromJson({
+        'data':
+            responseData
+                .whereType<Map>()
+                .map((item) => Map<String, dynamic>.from(item))
+                .toList(),
+      });
+      final List<StockItem> stocks =
+          (marketMoverResponse.data ?? [])
+              .map((item) => StockItem.fromJson(item.toJson()))
+              .toList();
+
+      _marketUpdates
+        ..clear()
+        ..addAll(stocks);
+      _marketUpdatesError = null;
+    } on FormatException {
+      if (requestId == _marketUpdatesRequestId) {
+        _marketUpdates.clear();
+        _marketUpdatesError = 'The market mover response is invalid.';
+      }
+    } finally {
+      if (requestId == _marketUpdatesRequestId) {
+        _isMarketUpdatesLoading = false;
+        notifyListeners();
+      }
+    }
+  }
+
+  Future<void> callTopPositions(BuildContext context) async {
+    try {
+      _topPositions.clear();
+      final response = await _repository.fetchTopPositions(context);
+      if ((response != null) && (response is List)) {
+        final data = response.map((e) => Position.fromJson(e)).toList();
+
+        _topPositions.addAll(data);
+      }
+      notifyListeners();
+    } catch (e) {
+      print('Get script exception : $e');
+    }
+  }
+
+  Future<void> callActivityFeed(BuildContext context) async {
+    final accountId = AppConfig().accountId?.trim();
+    if (accountId == null || accountId.isEmpty) {
+      _activityFeed.clear();
+      _activityFeedError = 'Account ID is unavailable. Please sign in again.';
+      notifyListeners();
+      return;
+    }
+
+    _isActivityFeedLoading = true;
+    _activityFeedError = null;
+    notifyListeners();
+
+    try {
+      final response = await _repository.fetchActivityFeed(
+        context,
+        accountId: accountId,
+      );
+
+      if (response is NetworkResponse) {
+        _activityFeedError =
+            'Unable to load activity feed (${response.statusCode}).';
+        _activityFeed.clear();
+      } else if (response is List) {
+        _activityFeed
+          ..clear()
+          ..addAll(
+            response.whereType<Map>().map(
+              (item) =>
+                  ActivityFeedItem.fromJson(Map<String, dynamic>.from(item)),
+            ),
+          );
+      } else {
+        _activityFeed.clear();
+        _activityFeedError = 'The activity feed response is invalid.';
+      }
+    } finally {
+      _isActivityFeedLoading = false;
+      notifyListeners();
+    }
   }
 
   void updateTopPositions(List<Position> positions) {
-    _topPositions = positions;
+    _topPositions.clear();
+    for (var item in positions) {
+      _topPositions.add(item);
+    }
     notifyListeners();
   }
-
-  void refreshDashboard() {
-    _initializeData();
-    notifyListeners();
-  }
-
-  final List<StockPosition> positions = [
-    StockPosition(
-      ticker: 'AAPL',
-      type: 'BUY',
-      qty: 1000,
-      profit: 3000.00,
-      avgPrice: 0.0,
-      ltp: 0000.00,
-    ),
-    StockPosition(
-      ticker: 'TSLA',
-      type: 'BUY',
-      qty: 100,
-      profit: 3000.00,
-      avgPrice: 00000.0,
-      ltp: 0000.0,
-    ),
-    StockPosition(
-      ticker: 'NVDA',
-      type: 'BUY',
-      qty: 100,
-      profit: 3000.00,
-      avgPrice: 0.0,
-      ltp: 0000.0,
-    ),
-  ];
-
-  final List<StockItem> stocks = [
-    StockItem(
-      symbol: 'AAPL',
-      name: 'Apple Inc.',
-      iconUrl: '',
-      price: 577.87,
-      percentageChange: 3.76,
-      pointsChange: 4.89,
-      bid: 1130.04,
-      ask: 1125.08,
-      sparklinePoints: const [
-        Offset(0.0, 0.5),
-        Offset(0.2, 0.6),
-        Offset(0.4, 0.3),
-        Offset(0.6, 0.7),
-        Offset(0.8, 0.4),
-        Offset(1.0, 0.5),
-      ],
-    ),
-    StockItem(
-      symbol: 'TSLA',
-      name: 'Tesla Motors',
-      iconUrl: '',
-      price: 577.87,
-      percentageChange: 3.76,
-      pointsChange: 4.89,
-      bid: 1130.04,
-      ask: 1125.08,
-      sparklinePoints: const [
-        Offset(0.0, 0.5),
-        Offset(0.2, 0.6),
-        Offset(0.4, 0.3),
-        Offset(0.6, 0.7),
-        Offset(0.8, 0.4),
-        Offset(1.0, 0.5),
-      ],
-    ),
-    StockItem(
-      symbol: 'AAPL',
-      name: 'Apple Inc.',
-      iconUrl: '',
-      price: 577.87,
-      percentageChange: 3.76,
-      pointsChange: 4.89,
-      bid: 1130.04,
-      ask: 1125.08,
-      sparklinePoints: const [
-        Offset(0.0, 0.5),
-        Offset(0.2, 0.6),
-        Offset(0.4, 0.3),
-        Offset(0.6, 0.7),
-        Offset(0.8, 0.4),
-        Offset(1.0, 0.5),
-      ],
-    ),
-    StockItem(
-      symbol: 'TSLA',
-      name: 'Tesla Motors',
-      iconUrl: '',
-      price: 577.87,
-      percentageChange: 3.76,
-      pointsChange: 4.89,
-      bid: 1130.04,
-      ask: 1125.08,
-      sparklinePoints: const [
-        Offset(0.0, 0.5),
-        Offset(0.2, 0.6),
-        Offset(0.4, 0.3),
-        Offset(0.6, 0.7),
-        Offset(0.8, 0.4),
-        Offset(1.0, 0.5),
-      ],
-    ),
-  ];
-
-  // Call it in build():
-  // child: StockHorizontalList(stocks: dummyStocks)
 }

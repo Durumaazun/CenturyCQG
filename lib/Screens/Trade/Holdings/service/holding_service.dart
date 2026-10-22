@@ -40,5 +40,27 @@ class HoldingService extends ChangeNotifier {
   ];
 
   List<HoldingItem> get holdings => List.unmodifiable(_holdings);
-}
 
+  String _filterTime = 'Today';
+  String _filterSymbol = 'AAPL';
+  String _filterType = 'Index';
+
+  String get filterTime => _filterTime;
+  String get filterSymbol => _filterSymbol;
+  String get filterType => _filterType;
+
+  void setFilterTime(String value) {
+    _filterTime = value;
+    notifyListeners();
+  }
+
+  void setFilterSymbol(String value) {
+    _filterSymbol = value;
+    notifyListeners();
+  }
+
+  void setFilterType(String value) {
+    _filterType = value;
+    notifyListeners();
+  }
+}

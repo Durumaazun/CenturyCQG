@@ -4,7 +4,19 @@ enum AppPlatform { mobile, web }
 
 enum GreekLicenseValidity { monthly, quarterly }
 
-enum APINames { login }
+enum APINames {
+  login,
+  accountSummary,
+  watchedStocks,
+  topPositions,
+  marketMover,
+  activityFeed,
+  addWatchlist,
+  deleteWatchlist,
+  renameWatchlist,
+  addWatchlistSymbol,
+  getWatchlist,
+}
 
 enum APIErrorCode {
   success,

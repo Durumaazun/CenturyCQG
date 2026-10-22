@@ -31,7 +31,7 @@ class SearchResultModel {
   factory SearchResultModel.fromJson(Map<String, dynamic> json) {
     return SearchResultModel(
       id: json['id'] ?? '',
-      symbol: json['symbol'] ?? '',
+      symbol: json['symbol']?.toString() ?? '',
       name: json['name'] ?? '',
       price: json['price'] ?? '',
       percentageChange: json['percentageChange'] ?? '',

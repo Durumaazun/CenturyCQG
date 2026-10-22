@@ -74,7 +74,7 @@ class SplashScreenState extends State<SplashScreen>
 
     Future.delayed(const Duration(seconds: 3), () {
       if (mounted) {
-        Navigator.of(context).pushReplacementNamed(NerveScreensNames.dashboard);
+        Navigator.of(context).pushReplacementNamed(NerveScreensNames.login);
       }
     });
   }
@@ -192,4 +192,3 @@ class SplashScreenState extends State<SplashScreen>
     );
   }
 }
-

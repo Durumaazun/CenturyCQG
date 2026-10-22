@@ -35,6 +35,7 @@ class SearchService extends ChangeNotifier {
           bidPrice: '1130.04',
           ask: 'A',
           askPrice: '1125.08',
+          isFavorite: true,
         ),
         SearchResultModel(
           id: '2',
@@ -48,6 +49,7 @@ class SearchService extends ChangeNotifier {
           bidPrice: '1130.04',
           ask: 'A',
           askPrice: '1125.08',
+          isFavorite: true,
         ),
         SearchResultModel(
           id: '3',
@@ -61,6 +63,7 @@ class SearchService extends ChangeNotifier {
           bidPrice: '1130.04',
           ask: 'A',
           askPrice: '1125.08',
+          isFavorite: true,
         ),
       ],
       'Stocks': [
@@ -76,6 +79,7 @@ class SearchService extends ChangeNotifier {
           bidPrice: '1130.04',
           ask: 'A',
           askPrice: '1125.08',
+          isFavorite: true,
         ),
         SearchResultModel(
           id: '5',
@@ -89,6 +93,7 @@ class SearchService extends ChangeNotifier {
           bidPrice: '1130.04',
           ask: 'A',
           askPrice: '1125.08',
+          isFavorite: true,
         ),
       ],
       'Indices': [
@@ -104,6 +109,7 @@ class SearchService extends ChangeNotifier {
           bidPrice: '1130.04',
           ask: 'A',
           askPrice: '1125.08',
+          isFavorite: true,
         ),
       ],
       'Futures': [
@@ -213,4 +219,3 @@ class SearchService extends ChangeNotifier {
     super.dispose();
   }
 }
-

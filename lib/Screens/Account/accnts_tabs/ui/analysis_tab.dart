@@ -6,17 +6,14 @@ import 'package:century_cqg/Helper/nerve_base.dart';
 import 'package:century_cqg/Screens/Account/model/account_model.dart';
 import 'package:century_cqg/Screens/Account/accnts_tabs/model/analysis_model.dart';
 import 'package:century_cqg/Screens/Account/accnts_tabs/service/accnts_tab_service.dart';
+import 'package:century_cqg/Screens/Dashboard/service/dasboard_service.dart';
 
-class AnalysisTab extends StatefulWidget {
+class AnalysisTab extends StatelessWidget {
   const AnalysisTab({super.key});
 
   @override
-  State<AnalysisTab> createState() => AnalysisTabState();
-}
-
-class AnalysisTabState extends State<AnalysisTab> {
-  @override
   Widget build(BuildContext context) {
+    context.watch<DashboardService>();
     final isDarkMode = NerveBase().isDarkMode;
 
     return Consumer<AccntsTabService>(
@@ -29,7 +26,7 @@ class AnalysisTabState extends State<AnalysisTab> {
 
             performanceStatsView(isDarkMode, context, analysisService),
             const SizedBox(height: 12),
-            tradesCalendarView(isDarkMode, analysisService),
+            tradesCalendarView(context, isDarkMode, analysisService),
           ],
         );
       },
@@ -37,11 +34,11 @@ class AnalysisTabState extends State<AnalysisTab> {
   }
 
   Future<void> selectMonthAndYear(
+    BuildContext context,
     bool isDarkMode,
     AccntsTabService analysisService,
   ) async {
-    var selectedYear = analysisService.focusedDay.year;
-    var selectedMonth = analysisService.focusedDay.month;
+    analysisService.initDialogMonthYear();
 
     await showDialog<void>(
       context: context,
@@ -49,8 +46,8 @@ class AnalysisTabState extends State<AnalysisTab> {
         final dialogColor = isDarkMode ? const Color(0xFF141A16) : Colors.white;
         final textColor = isDarkMode ? Colors.white : const Color(0xFF454A54);
 
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
+        return Consumer<AccntsTabService>(
+          builder: (context, service, _) {
             return AlertDialog(
               backgroundColor: dialogColor,
               title: Text(
@@ -61,7 +58,7 @@ class AnalysisTabState extends State<AnalysisTab> {
                 children: [
                   Expanded(
                     child: DropdownButton<int>(
-                      value: selectedMonth,
+                      value: service.dialogSelectedMonth,
                       isExpanded: true,
                       dropdownColor: dialogColor,
                       style: TextStyle(color: textColor),
@@ -69,12 +66,12 @@ class AnalysisTabState extends State<AnalysisTab> {
                         12,
                         (index) => DropdownMenuItem(
                           value: index + 1,
-                          child: Text(analysisService.monthName(index + 1)),
+                          child: Text(service.monthName(index + 1)),
                         ),
                       ),
                       onChanged: (month) {
                         if (month != null) {
-                          setDialogState(() => selectedMonth = month);
+                          service.setDialogSelectedMonth(month);
                         }
                       },
                     ),
@@ -82,7 +79,7 @@ class AnalysisTabState extends State<AnalysisTab> {
                   const SizedBox(width: 16),
                   Expanded(
                     child: DropdownButton<int>(
-                      value: selectedYear,
+                      value: service.dialogSelectedYear,
                       isExpanded: true,
                       dropdownColor: dialogColor,
                       style: TextStyle(color: textColor),
@@ -99,7 +96,7 @@ class AnalysisTabState extends State<AnalysisTab> {
                       ],
                       onChanged: (year) {
                         if (year != null) {
-                          setDialogState(() => selectedYear = year);
+                          service.setDialogSelectedYear(year);
                         }
                       },
                     ),
@@ -113,13 +110,7 @@ class AnalysisTabState extends State<AnalysisTab> {
                 ),
                 TextButton(
                   onPressed: () {
-                    setState(() {
-                      analysisService.focusedDay = DateTime(
-                        selectedYear,
-                        selectedMonth,
-                        1,
-                      );
-                    });
+                    service.applyDialogMonthYear();
                     Navigator.pop(dialogContext);
                   },
                   child: const Text('Apply'),
@@ -138,9 +129,6 @@ class AnalysisTabState extends State<AnalysisTab> {
   ) async {
     final marketImpactOptions = AccntsTabService.marketImpactOptions;
     final timeOptions = AccntsTabService.timeOptions;
-
-    int selectedMarketImpact = 0;
-    int selectedTime = 5;
     const int customTimeIndex = 5;
     final customRangeController = TextEditingController();
     final customRangeFocusNode = FocusNode();
@@ -161,8 +149,11 @@ class AnalysisTabState extends State<AnalysisTab> {
           final chipBackground =
               isDarkMode ? const Color(0xFF1D2321) : const Color(0xFFF5F6F8);
 
-          return StatefulBuilder(
-            builder: (stateContext, setModalState) {
+          return Consumer<AccntsTabService>(
+            builder: (context, service, _) {
+              final selectedMarketImpact = service.selectedMarketImpact;
+              final selectedTime = service.selectedTime;
+
               return SafeArea(
                 top: false,
                 child: Column(
@@ -228,9 +219,7 @@ class AnalysisTabState extends State<AnalysisTab> {
                                     isDarkMode: isDarkMode,
                                     chipBackground: chipBackground,
                                     onTap: () {
-                                      setModalState(() {
-                                        selectedMarketImpact = index;
-                                      });
+                                      service.setSelectedMarketImpact(index);
                                     },
                                   );
                                 },
@@ -259,9 +248,7 @@ class AnalysisTabState extends State<AnalysisTab> {
                                   isDarkMode: isDarkMode,
                                   chipBackground: chipBackground,
                                   onTap: () {
-                                    setModalState(() {
-                                      selectedTime = index;
-                                    });
+                                    service.setSelectedTime(index);
 
                                     if (index == customTimeIndex) {
                                       WidgetsBinding.instance
@@ -373,12 +360,16 @@ class AnalysisTabState extends State<AnalysisTab> {
     );
   }
 
-  Widget tradesCalendarView(bool isDarkMode, AccntsTabService analysisService) {
+  Widget tradesCalendarView(
+    BuildContext context,
+    bool isDarkMode,
+    AccntsTabService analysisService,
+  ) {
     final weekDays = AccntsTabService.weekDays;
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.only(top: 8, bottom: 8, left: 16, right: 16),
+      padding: const EdgeInsets.only(top: 8, bottom: 8, left: 8, right: 8),
       decoration: BoxDecoration(
         color: isDarkMode ? const Color(0xFF0D110F) : Colors.white,
         border: Border(
@@ -419,20 +410,16 @@ class AnalysisTabState extends State<AnalysisTab> {
                     isEnabled: analysisService.focusedDay.isAfter(
                       AccntsTabService.firstCalendarMonth,
                     ),
-                    onTap: () {
-                      setState(() {
-                        analysisService.focusedDay = DateTime(
-                          analysisService.focusedDay.year,
-                          analysisService.focusedDay.month - 1,
-                          1,
-                        );
-                      });
-                    },
+                    onTap: () => analysisService.previousMonth(),
                   ),
                   const SizedBox(width: 10),
                   InkWell(
                     onTap:
-                        () => selectMonthAndYear(isDarkMode, analysisService),
+                        () => selectMonthAndYear(
+                          context,
+                          isDarkMode,
+                          analysisService,
+                        ),
                     borderRadius: BorderRadius.circular(8),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
@@ -462,15 +449,7 @@ class AnalysisTabState extends State<AnalysisTab> {
                     isEnabled: analysisService.focusedDay.isBefore(
                       AccntsTabService.lastCalendarMonth,
                     ),
-                    onTap: () {
-                      setState(() {
-                        analysisService.focusedDay = DateTime(
-                          analysisService.focusedDay.year,
-                          analysisService.focusedDay.month + 1,
-                          1,
-                        );
-                      });
-                    },
+                    onTap: () => analysisService.nextMonth(),
                   ),
                 ],
               ),
@@ -512,7 +491,7 @@ class AnalysisTabState extends State<AnalysisTab> {
             headerVisible: false,
             daysOfWeekVisible: false,
             sixWeekMonthsEnforced: true,
-            rowHeight: 56,
+            rowHeight: 58,
             calendarStyle: const CalendarStyle(
               cellMargin: EdgeInsets.zero,
               cellPadding: EdgeInsets.zero,
@@ -521,7 +500,10 @@ class AnalysisTabState extends State<AnalysisTab> {
             calendarBuilders: CalendarBuilders<void>(
               defaultBuilder:
                   (context, day, focusedDay) => Padding(
-                    padding: const EdgeInsets.all(4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 2,
+                      vertical: 3,
+                    ),
                     child: calendarDayCell(
                       day: day,
                       status: analysisService.statusForDay(day),
@@ -530,7 +512,10 @@ class AnalysisTabState extends State<AnalysisTab> {
                   ),
               todayBuilder:
                   (context, day, focusedDay) => Padding(
-                    padding: const EdgeInsets.all(4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 2,
+                      vertical: 3,
+                    ),
                     child: calendarDayCell(
                       day: day,
                       status: analysisService.statusForDay(day),
@@ -540,7 +525,10 @@ class AnalysisTabState extends State<AnalysisTab> {
                   ),
               outsideBuilder:
                   (context, day, focusedDay) => Padding(
-                    padding: const EdgeInsets.all(4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 2,
+                      vertical: 3,
+                    ),
                     child: calendarDayCell(
                       day: day,
                       status: null,
@@ -550,9 +538,7 @@ class AnalysisTabState extends State<AnalysisTab> {
                   ),
             ),
             onPageChanged: (focusedDayParam) {
-              setState(() {
-                analysisService.focusedDay = focusedDayParam;
-              });
+              analysisService.setFocusedDay(focusedDayParam);
             },
           ),
           const SizedBox(height: 14),
@@ -667,7 +653,7 @@ class AnalysisTabState extends State<AnalysisTab> {
         style: TextStyle(
           fontFamily: 'Inter',
           fontWeight: FontWeight.w500,
-          fontSize: 14,
+          fontSize: 16,
           height: 1,
           letterSpacing: 0,
           color:
@@ -702,7 +688,6 @@ class AnalysisTabState extends State<AnalysisTab> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     'Performance Stats',
@@ -760,13 +745,15 @@ class AnalysisTabState extends State<AnalysisTab> {
           const SizedBox(height: 16),
           Row(
             children: List.generate(summaryCards.length, (index) {
-              return Padding(
-                padding: EdgeInsets.only(
-                  right: index == summaryCards.length - 1 ? 0 : 8,
-                ),
-                child: summaryCard(
-                  item: summaryCards[index],
-                  isDarkMode: isDarkMode,
+              return Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    right: (index == summaryCards.length - 1) ? 0 : 8,
+                  ),
+                  child: summaryCard(
+                    item: summaryCards[index],
+                    isDarkMode: isDarkMode,
+                  ),
                 ),
               );
             }),
@@ -899,7 +886,7 @@ class AnalysisTabState extends State<AnalysisTab> {
                 children: [
                   Expanded(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
+                      padding: const EdgeInsets.only(top: 4),
                       child: BarChart(
                         BarChartData(
                           minY: 0,
@@ -1048,7 +1035,7 @@ class AnalysisTabState extends State<AnalysisTab> {
     required bool isDarkMode,
   }) {
     return Container(
-      width: 108.66667938232422,
+      width: double.infinity,
       height: 71,
       padding: const EdgeInsets.only(top: 16, bottom: 16),
       decoration: BoxDecoration(

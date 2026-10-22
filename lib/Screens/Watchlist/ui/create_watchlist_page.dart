@@ -27,7 +27,7 @@ class CreateWatchlistPageState extends State<CreateWatchlistPage> {
       return;
     }
 
-    final added = await watchlistService.addWatchedList(input);
+    final added = await watchlistService.addWatchedList(context, input);
     if (!mounted) {
       return;
     }
@@ -38,7 +38,9 @@ class CreateWatchlistPageState extends State<CreateWatchlistPage> {
       return;
     }
 
-    watchlistService.setCreateWatchlistError('Watchlist already exists');
+    watchlistService.setCreateWatchlistError(
+      watchlistService.watchlistMutationError ?? 'Unable to create watchlist.',
+    );
   }
 
   @override
@@ -65,86 +67,92 @@ class CreateWatchlistPageState extends State<CreateWatchlistPage> {
               style: NerveStyles.titleTextStyle(isDarkMode),
             ),
           ),
-          body: Column(
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(14),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 12),
-                      Text(
-                        'Watchlist Name',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: isDarkMode ? Colors.white70 : Colors.black54,
+          body: SafeArea(
+            child: Column(
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 12),
+                        Text(
+                          'Watchlist Name',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: isDarkMode ? Colors.white70 : Colors.black54,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller: _controller,
-                        onSubmitted: (_) => _createWatchlist(watchlistService),
-                        decoration: InputDecoration(
-                          hintText: 'Watchlist 3',
-                          errorText: errorText,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(color: borderColor),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(color: borderColor),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(
-                              color:
-                                  isDarkMode
-                                      ? const Color(0xFF8B8B8B)
-                                      : const Color(0xFFB0B0B0),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: _controller,
+                          onSubmitted:
+                              (_) => _createWatchlist(watchlistService),
+                          decoration: InputDecoration(
+                            hintText: 'Watchlist 3',
+                            errorText: errorText,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(color: borderColor),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(color: borderColor),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(
+                                color:
+                                    isDarkMode
+                                        ? const Color(0xFF8B8B8B)
+                                        : const Color(0xFFB0B0B0),
+                              ),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 12,
                             ),
                           ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 12,
-                          ),
+                          onChanged: (_) {
+                            if (errorText != null) {
+                              watchlistService.setCreateWatchlistError(null);
+                            }
+                          },
                         ),
-                        onChanged: (_) {
-                          if (errorText != null) {
-                            watchlistService.setCreateWatchlistError(null);
-                          }
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
-                decoration: BoxDecoration(
-                  color: NerveStyles.appBarBackground(isDarkMode),
-                  border: Border(top: BorderSide(color: borderColor)),
-                ),
-                child: ElevatedButton(
-                  onPressed: () => _createWatchlist(watchlistService),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFFC600),
-                    foregroundColor: Colors.black,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      ],
                     ),
-                    minimumSize: const Size.fromHeight(48),
-                  ),
-                  child: const Text(
-                    'Create',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                   ),
                 ),
-              ),
-            ],
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
+                  decoration: BoxDecoration(
+                    color: NerveStyles.appBarBackground(isDarkMode),
+                    border: Border(top: BorderSide(color: borderColor)),
+                  ),
+                  child: ElevatedButton(
+                    onPressed: () => _createWatchlist(watchlistService),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFFFC600),
+                      foregroundColor: Colors.black,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      minimumSize: const Size.fromHeight(48),
+                    ),
+                    child: const Text(
+                      'Create',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },

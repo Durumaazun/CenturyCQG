@@ -6,6 +6,7 @@ import 'package:century_cqg/Screens/Account/service/account_service.dart';
 import 'package:century_cqg/Screens/Account/accnts_tabs/ui/analysis_tab.dart';
 import 'package:century_cqg/Screens/Account/accnts_tabs/ui/overview_tab.dart';
 import 'package:century_cqg/Screens/Account/accnts_tabs/ui/settings_tab.dart';
+import 'package:century_cqg/Screens/Dashboard/service/dasboard_service.dart';
 import 'package:century_cqg/Helper/nerve_base.dart';
 
 class AccountPage extends StatelessWidget {
@@ -15,8 +16,8 @@ class AccountPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<AccountService>(
-      builder: (context, accountProvider, _) {
+    return Consumer2<AccountService, DashboardService>(
+      builder: (context, accountProvider, dashboardService, _) {
         final isDarkMode = NerveBase().isDarkMode;
         final bgColor =
             isDarkMode ? const Color(0xFF0D110F) : const Color(0xFFF6F6F6);

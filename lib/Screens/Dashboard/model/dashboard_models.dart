@@ -1,23 +1,3 @@
-class AccountSummary {
-  final String cashBalance;
-  final String buyingPower;
-  final String buyingPowerUnrealized;
-  final String buyingPowerUnrealizedValue;
-  final String marginUsed;
-  final String marginUsedRealized;
-  final String marginUsedRealizedValue;
-
-  AccountSummary({
-    required this.cashBalance,
-    required this.buyingPower,
-    required this.buyingPowerUnrealized,
-    required this.buyingPowerUnrealizedValue,
-    required this.marginUsed,
-    required this.marginUsedRealized,
-    required this.marginUsedRealizedValue,
-  });
-}
-
 class Stock {
   final String symbol;
   final String logo;
@@ -36,6 +16,29 @@ class Stock {
     required this.minPrice,
     required this.maxPrice,
   });
+
+  factory Stock.fromJson(Map<String, dynamic> json) {
+    return Stock(
+      symbol: '${json['symbol'] ?? ''}',
+      logo: '${json['logo'] ?? ''}',
+      price: _displayValue(json['price']),
+      change: _displayPercent(json['percentageChange'] ?? json['change']),
+      changePoints: _displayValue(json['pointsChange']),
+      minPrice: _displayValue(json['bid']),
+      maxPrice: _displayValue(json['ask']),
+    );
+  }
+
+  static String _displayValue(dynamic value) {
+    if (value == null) return '--';
+    return value is num ? value.toStringAsFixed(2) : value.toString();
+  }
+
+  static String _displayPercent(dynamic value) {
+    if (value == null) return '--';
+    final text = value is num ? value.toStringAsFixed(2) : value.toString();
+    return text.endsWith('%') ? text : '$text%';
+  }
 }
 
 class Position {
@@ -54,5 +57,28 @@ class Position {
     required this.value,
     required this.ltp,
   });
-}
 
+  factory Position.fromJson(Map<String, dynamic> json) {
+    return Position(
+      symbol: '${json['symbol'] ?? json['ticker'] ?? ''}',
+      type: '${json['type'] ?? 'BUY'}',
+      quantity: _parseQuantity(json['quantity'] ?? json['qty']),
+      avgPrice: _displayValue(json['avgPrice']),
+      value: _displayValue(
+        json['value'] ?? json['profit'] ?? json['totalValue'],
+      ),
+      ltp: _displayValue(json['ltp']),
+    );
+  }
+
+  static int _parseQuantity(dynamic value) {
+    if (value == null) return 0;
+    if (value is num) return value.toInt();
+    return int.tryParse(value.toString()) ?? 0;
+  }
+
+  static String _displayValue(dynamic value) {
+    if (value == null) return '--';
+    return value is num ? value.toStringAsFixed(2) : value.toString();
+  }
+}

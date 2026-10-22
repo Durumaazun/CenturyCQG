@@ -70,10 +70,11 @@ class TradePageService extends ChangeNotifier {
   List<TradePagePositionItem> get positions => List.unmodifiable(_positions);
 
   void setSelectedTabIndex(int index) {
-    if (_selectedTabIndex == index) {
+    final boundedIndex = index.clamp(0, _tabs.length - 1);
+    if (_selectedTabIndex == boundedIndex) {
       return;
     }
-    _selectedTabIndex = index;
+    _selectedTabIndex = boundedIndex;
     notifyListeners();
   }
 
@@ -85,4 +86,3 @@ class TradePageService extends ChangeNotifier {
     notifyListeners();
   }
 }
-

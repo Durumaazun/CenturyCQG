@@ -28,11 +28,10 @@ class _TradePageState extends State<TradePage> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.initialTabIndex != widget.initialTabIndex) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          context.read<TradePageService>().setSelectedTabIndex(
-            widget.initialTabIndex,
-          );
-        }
+        if (!mounted) return;
+        context.read<TradePageService>().setSelectedTabIndex(
+          widget.initialTabIndex,
+        );
       });
     }
   }
@@ -44,12 +43,14 @@ class _TradePageState extends State<TradePage> {
         if (!_didInitTabIndex) {
           _didInitTabIndex = true;
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (!mounted) {
-              return;
-            }
-            context.read<TradePageService>().setSelectedTabIndex(
-              widget.initialTabIndex,
+            if (!mounted) return;
+            final targetIndex = widget.initialTabIndex.clamp(
+              0,
+              tradePageService.tabs.length - 1,
             );
+            if (tradePageService.selectedTabIndex != targetIndex) {
+              tradePageService.setSelectedTabIndex(targetIndex);
+            }
           });
         }
 
@@ -84,8 +85,12 @@ class _TradePageState extends State<TradePage> {
                   final isSelected = selectedTabIndex == index;
                   return Expanded(
                     child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
                       onTap: () {
-                        tradePageService.setSelectedTabIndex(index);
+                        final safeIndex = index.clamp(0, tabs.length - 1);
+                        if (tradePageService.selectedTabIndex != safeIndex) {
+                          tradePageService.setSelectedTabIndex(safeIndex);
+                        }
                       },
                       child: Column(
                         mainAxisSize: MainAxisSize.min,

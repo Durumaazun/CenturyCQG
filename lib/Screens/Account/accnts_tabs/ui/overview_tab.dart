@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:century_cqg/Helper/nerve_styles.dart';
 import 'package:century_cqg/Helper/nerve_colors.dart';
 import 'package:century_cqg/Screens/Account/accnts_tabs/service/accnts_tab_service.dart';
+import 'package:century_cqg/Screens/Dashboard/service/dasboard_service.dart';
 import 'package:century_cqg/Helper/nerve_base.dart';
 
 class OverviewTab extends StatelessWidget {
@@ -12,6 +13,7 @@ class OverviewTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<DashboardService>();
     final isDarkMode = NerveBase().isDarkMode;
 
     return Consumer<AccntsTabService>(

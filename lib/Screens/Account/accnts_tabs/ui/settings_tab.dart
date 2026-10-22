@@ -1,17 +1,20 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:century_cqg/Helper/nerve_styles.dart';
 import 'package:century_cqg/Helper/nerve_colors.dart';
 import 'package:century_cqg/Screens/Account/ui/app_settings_page.dart';
 import 'package:century_cqg/Screens/Account/ui/reports_page.dart';
 import 'package:century_cqg/Helper/nerve_base.dart';
+import 'package:century_cqg/Screens/Dashboard/service/dasboard_service.dart';
 
 class SettingsTab extends StatelessWidget {
   const SettingsTab({super.key});
 
   @override
   Widget build(BuildContext context) {
+    context.watch<DashboardService>();
     final isDarkMode = NerveBase().isDarkMode;
     final cardColor = isDarkMode ? const Color(0xFF0D110F) : Colors.white;
     final iconBg =

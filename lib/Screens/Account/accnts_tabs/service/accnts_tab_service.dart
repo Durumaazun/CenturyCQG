@@ -91,7 +91,68 @@ class AccntsTabService extends ChangeNotifier {
 
   static final DateTime firstCalendarMonth = DateTime(2020, 1, 1);
   static final DateTime lastCalendarMonth = DateTime(2030, 12, 1);
-  DateTime focusedDay = DateTime(DateTime.now().year, DateTime.now().month, 1);
+  DateTime _focusedDay = DateTime(DateTime.now().year, DateTime.now().month, 1);
+
+  DateTime get focusedDay => _focusedDay;
+
+  set focusedDay(DateTime value) {
+    _focusedDay = value;
+    notifyListeners();
+  }
+
+  void setFocusedDay(DateTime day) {
+    _focusedDay = day;
+    notifyListeners();
+  }
+
+  void previousMonth() {
+    _focusedDay = DateTime(_focusedDay.year, _focusedDay.month - 1, 1);
+    notifyListeners();
+  }
+
+  void nextMonth() {
+    _focusedDay = DateTime(_focusedDay.year, _focusedDay.month + 1, 1);
+    notifyListeners();
+  }
+
+  int _selectedMarketImpact = 0;
+  int get selectedMarketImpact => _selectedMarketImpact;
+  void setSelectedMarketImpact(int index) {
+    _selectedMarketImpact = index;
+    notifyListeners();
+  }
+
+  int _selectedTime = 5;
+  int get selectedTime => _selectedTime;
+  void setSelectedTime(int index) {
+    _selectedTime = index;
+    notifyListeners();
+  }
+
+  int _dialogSelectedMonth = DateTime.now().month;
+  int get dialogSelectedMonth => _dialogSelectedMonth;
+  void setDialogSelectedMonth(int month) {
+    _dialogSelectedMonth = month;
+    notifyListeners();
+  }
+
+  int _dialogSelectedYear = DateTime.now().year;
+  int get dialogSelectedYear => _dialogSelectedYear;
+  void setDialogSelectedYear(int year) {
+    _dialogSelectedYear = year;
+    notifyListeners();
+  }
+
+  void initDialogMonthYear() {
+    _dialogSelectedMonth = _focusedDay.month;
+    _dialogSelectedYear = _focusedDay.year;
+    notifyListeners();
+  }
+
+  void applyDialogMonthYear() {
+    _focusedDay = DateTime(_dialogSelectedYear, _dialogSelectedMonth, 1);
+    notifyListeners();
+  }
 
   static const List<String> weekDays = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 

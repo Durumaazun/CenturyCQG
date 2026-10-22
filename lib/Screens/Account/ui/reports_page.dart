@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:century_cqg/Helper/nerve_base.dart';
 import 'package:century_cqg/Helper/nerve_colors.dart';
+import 'package:century_cqg/Screens/Dashboard/service/dasboard_service.dart';
 
 class ReportsPage extends StatelessWidget {
   const ReportsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    context.watch<DashboardService>();
     final isDarkMode = NerveBase().isDarkMode;
     final bgColor =
         isDarkMode ? const Color(0xFF0D110F) : const Color(0xFFF6F6F6);

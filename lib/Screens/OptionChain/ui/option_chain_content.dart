@@ -1,39 +1,37 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../provider/option_chain_provider.dart';
 
-class OptionChainContent extends StatefulWidget {
+class OptionChainContent extends StatelessWidget {
   final String symbol;
 
-  const OptionChainContent({Key? key, required this.symbol}) : super(key: key);
-
-  @override
-  State<OptionChainContent> createState() => OptionChainContentState();
-}
-
-class OptionChainContentState extends State<OptionChainContent> {
-  String? selectedExpirationDate;
-  String selectedType = 'call'; // 'call' or 'put'
-
-  @override
-  void initState() {
-    super.initState();
-    // TODO: Initialize option chain data fetching
-  }
+  const OptionChainContent({super.key, required this.symbol});
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          // Filters Section
-          _buildFiltersSection(),
-          // Option Chain Table
-          _buildOptionChainTable(),
-        ],
-      ),
+    return Consumer<OptionChainNotifier>(
+      builder: (context, notifier, _) {
+        final state = notifier.state;
+
+        return SingleChildScrollView(
+          child: Column(
+            children: [
+              // Filters Section
+              _buildFiltersSection(context, state, notifier),
+              // Option Chain Table
+              _buildOptionChainTable(),
+            ],
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildFiltersSection() {
+  Widget _buildFiltersSection(
+    BuildContext context,
+    OptionChainState state,
+    OptionChainNotifier notifier,
+  ) {
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -45,16 +43,19 @@ class OptionChainContentState extends State<OptionChainContent> {
           ),
           const SizedBox(height: 12),
           // Expiration Date Dropdown
-          _buildExpirationDateDropdown(),
+          _buildExpirationDateDropdown(state, notifier),
           const SizedBox(height: 12),
           // Option Type Toggle
-          _buildOptionTypeToggle(),
+          _buildOptionTypeToggle(state, notifier),
         ],
       ),
     );
   }
 
-  Widget _buildExpirationDateDropdown() {
+  Widget _buildExpirationDateDropdown(
+    OptionChainState state,
+    OptionChainNotifier notifier,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -71,15 +72,16 @@ class OptionChainContentState extends State<OptionChainContent> {
             underline: Container(),
             isExpanded: true,
             hint: const Text('Select Expiration Date'),
-            value: selectedExpirationDate,
+            value: state.selectedExpirationDate,
             onChanged: (value) {
-              setState(() {
-                selectedExpirationDate = value;
-              });
-              // TODO: Fetch options for selected expiration date
+              if (value != null) {
+                notifier.setSelectedExpirationDate(value);
+              }
             },
-            items: [
-              // TODO: Add dynamic expiration dates
+            items: const [
+              DropdownMenuItem(value: 'JUN 20', child: Text('JUN 20')),
+              DropdownMenuItem(value: 'JUL 20', child: Text('JUL 20')),
+              DropdownMenuItem(value: 'AUG 20', child: Text('AUG 20')),
             ],
           ),
         ),
@@ -87,7 +89,10 @@ class OptionChainContentState extends State<OptionChainContent> {
     );
   }
 
-  Widget _buildOptionTypeToggle() {
+  Widget _buildOptionTypeToggle(
+    OptionChainState state,
+    OptionChainNotifier notifier,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -95,22 +100,25 @@ class OptionChainContentState extends State<OptionChainContent> {
         const SizedBox(height: 8),
         Row(
           children: [
-            Expanded(child: _buildTypeButton('call', 'Call')),
+            Expanded(child: _buildTypeButton('call', 'Call', state, notifier)),
             const SizedBox(width: 12),
-            Expanded(child: _buildTypeButton('put', 'Put')),
+            Expanded(child: _buildTypeButton('put', 'Put', state, notifier)),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildTypeButton(String type, String label) {
-    bool isSelected = selectedType == type;
+  Widget _buildTypeButton(
+    String type,
+    String label,
+    OptionChainState state,
+    OptionChainNotifier notifier,
+  ) {
+    final bool isSelected = state.selectedType == type;
     return GestureDetector(
       onTap: () {
-        setState(() {
-          selectedType = type;
-        });
+        notifier.setSelectedType(type);
       },
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
@@ -154,9 +162,7 @@ class OptionChainContentState extends State<OptionChainContent> {
                 DataColumn(label: Text('IV')),
                 DataColumn(label: Text('Volume')),
               ],
-              rows: [
-                // TODO: Add dynamic rows from option chain data
-              ],
+              rows: const [],
             ),
           ),
         ],
@@ -164,4 +170,3 @@ class OptionChainContentState extends State<OptionChainContent> {
     );
   }
 }
-

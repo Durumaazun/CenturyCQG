@@ -14,11 +14,13 @@ import 'package:century_cqg/Screens/Trade/service/trade_page_service.dart';
 import 'package:century_cqg/Screens/Trade/service/trade_service.dart';
 import 'package:century_cqg/Screens/Trade/service/modify_order_service.dart';
 import 'package:century_cqg/Screens/OptionChain/provider/option_chain_provider.dart';
+import 'package:century_cqg/app_config.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await AppConfig().loadAccountId();
   customClearCache();
 
   runApp(
@@ -87,20 +89,14 @@ class MyApp extends StatelessWidget {
           themeMode: isDarkMode ? ThemeMode.dark : ThemeMode.light,
           initialRoute: NerveScreensNames.splash,
           routes: NerveNavigator.appRoutes,
-          builder:
-              (context, child) => MediaQuery(
-                data: MediaQueryData.fromView(View.of(context)).copyWith(
-                  devicePixelRatio: 1.0,
-                  textScaler: TextScaler.linear(1.0),
-                ),
-                child: SafeArea(
-                  child:
-                      child ??
-                      Container(
-                        color: Theme.of(context).scaffoldBackgroundColor,
-                      ),
-                ),
-              ),
+          builder: (context, child) {
+            return MediaQuery(
+              data: MediaQuery.of(
+                context,
+              ).copyWith(textScaler: const TextScaler.linear(1.0)),
+              child: child ?? const SizedBox.shrink(),
+            );
+          },
         );
       },
     );

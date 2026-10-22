@@ -12,94 +12,94 @@ class SearchPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Scaffold(
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        elevation: 0,
+        toolbarHeight: 50,
         backgroundColor: Colors.white,
-        appBar: AppBar(
-          elevation: 0,
-          toolbarHeight: 50,
-          backgroundColor: Colors.white,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.black),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-          title: Consumer<SearchService>(
-            builder: (context, proValue, _) {
-              return Padding(
-                padding: const EdgeInsets.only(
-                  top: 8,
-                  right: 16,
-                  bottom: 8,
-                  left: 0,
-                ),
-                child: SizedBox(
-                  height: 32,
-                  child: TextField(
-                    controller: proValue.searchController,
-                    focusNode: proValue.searchFocusNode,
-                    cursorColor: NerveColors.selectedNavColor,
-                    cursorWidth: 2,
-                    style: const TextStyle(color: Colors.black, fontSize: 14),
-                    decoration: InputDecoration(
-                      hintText: 'Search',
-                      hintStyle: const TextStyle(
-                        color: Color(0xFFBDBDBD),
-                        fontSize: 14,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(
-                          color: NerveColors.searchTextfieldBorderColor,
-                          width: 1,
-                        ),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(
-                          color: NerveColors.searchTextfieldBorderColor,
-                          width: 1,
-                        ),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(
-                          color: NerveColors.selectedNavColor,
-                          width: 2,
-                        ),
-                      ),
-                      contentPadding: const EdgeInsets.fromLTRB(16, 4, 12, 4),
-                      suffixIcon: Consumer<SearchService>(
-                        builder: (context, searchService, _) {
-                          return IconButton(
-                            icon: Icon(
-                              searchService.searchController.text.isEmpty
-                                  ? Icons.search
-                                  : Icons.close,
-                              color: Colors.grey,
-                              size: 20,
-                            ),
-                            padding: EdgeInsets.zero,
-                            onPressed: () {
-                              if (searchService.searchController.text.isEmpty) {
-                                proValue.openSearchFocus();
-                              } else {
-                                proValue.clearSearch();
-                              }
-                            },
-                          );
-                        },
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: Consumer<SearchService>(
+          builder: (context, proValue, _) {
+            return Padding(
+              padding: const EdgeInsets.only(
+                top: 8,
+                right: 16,
+                bottom: 8,
+                left: 0,
+              ),
+              child: SizedBox(
+                height: 32,
+                child: TextField(
+                  controller: proValue.searchController,
+                  focusNode: proValue.searchFocusNode,
+                  cursorColor: NerveColors.selectedNavColor,
+                  cursorWidth: 2,
+                  style: const TextStyle(color: Colors.black, fontSize: 14),
+                  decoration: InputDecoration(
+                    hintText: 'Search',
+                    hintStyle: const TextStyle(
+                      color: Color(0xFFBDBDBD),
+                      fontSize: 14,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(
+                        color: NerveColors.searchTextfieldBorderColor,
+                        width: 1,
                       ),
                     ),
-                    onChanged: (value) {
-                      proValue.setSearchQuery(value);
-                    },
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(
+                        color: NerveColors.searchTextfieldBorderColor,
+                        width: 1,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(
+                        color: NerveColors.selectedNavColor,
+                        width: 2,
+                      ),
+                    ),
+                    contentPadding: const EdgeInsets.fromLTRB(16, 4, 12, 4),
+                    suffixIcon: Consumer<SearchService>(
+                      builder: (context, searchService, _) {
+                        return IconButton(
+                          icon: Icon(
+                            searchService.searchController.text.isEmpty
+                                ? Icons.search
+                                : Icons.close,
+                            color: Colors.grey,
+                            size: 20,
+                          ),
+                          padding: EdgeInsets.zero,
+                          onPressed: () {
+                            if (searchService.searchController.text.isEmpty) {
+                              proValue.openSearchFocus();
+                            } else {
+                              proValue.clearSearch();
+                            }
+                          },
+                        );
+                      },
+                    ),
                   ),
+                  onChanged: (value) {
+                    proValue.setSearchQuery(value);
+                  },
                 ),
-              );
-            },
-          ),
+              ),
+            );
+          },
         ),
-        body: Consumer<SearchService>(
+      ),
+      body: SafeArea(
+        child: Consumer<SearchService>(
           builder: (context, searchService, _) {
             final results = searchService.getResults();
             final searchQuery = searchService.searchQuery;
@@ -176,253 +176,223 @@ class SearchPage extends StatelessWidget {
                             itemCount: results.length,
                             padding: const EdgeInsets.symmetric(
                               horizontal: 14,
-                              vertical: 8,
+                              vertical: 4,
                             ),
                             itemBuilder: (context, index) {
                               final result = results[index];
-                              return Container(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 10,
-                                ),
-                                decoration: BoxDecoration(
-                                  border: Border(
-                                    bottom: BorderSide(
-                                      color: Colors.grey[300]!,
-                                    ),
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Wrap(
-                                      children: [
-                                        Container(
-                                          width: 40,
-                                          height: 40,
-                                          decoration: BoxDecoration(
-                                            color: Colors.grey[200],
-                                            borderRadius: BorderRadius.circular(
-                                              12,
-                                            ),
-                                          ),
-                                          child: Center(
-                                            child: Text(
-                                              result.symbol[0],
-                                              style: const TextStyle(
-                                                color: Colors.black,
-                                                fontWeight: FontWeight.w700,
+                              final symbol = result.symbol.trim();
+                              return InkWell(
+                                onTap: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder:
+                                          (context) => MultiProvider(
+                                            providers: [
+                                              ChangeNotifierProvider<
+                                                OptionChainNotifier
+                                              >(
+                                                create:
+                                                    (_) =>
+                                                        OptionChainNotifier(),
                                               ),
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              GestureDetector(
-                                                onTap: () {
-                                                  Navigator.of(context).push(
-                                                    MaterialPageRoute(
-                                                      builder:
-                                                          (
-                                                            context,
-                                                          ) => MultiProvider(
-                                                            providers: [
-                                                              ChangeNotifierProvider<
-                                                                OptionChainNotifier
-                                                              >(
-                                                                create:
-                                                                    (_) =>
-                                                                        OptionChainNotifier(),
-                                                              ),
-                                                              Provider<
-                                                                OptionChainState
-                                                              >(
-                                                                create:
-                                                                    (_) =>
-                                                                        OptionChainState(),
-                                                              ),
-                                                            ],
-                                                            child:
-                                                                oc.OptionChainPage(
-                                                                  symbol:
-                                                                      result
-                                                                          .symbol,
-                                                                ),
-                                                          ),
-                                                    ),
-                                                  );
-                                                },
-                                                child: Text(
-                                                  result.symbol,
-                                                  style: const TextStyle(
-                                                    fontSize: 16,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: Colors.black,
-                                                    decoration:
-                                                        TextDecoration
-                                                            .underline,
-                                                    decorationColor:
-                                                        Colors.blue,
-                                                  ),
-                                                ),
-                                              ),
-                                              const SizedBox(height: 4),
-                                              Text(
-                                                result.price,
-                                                style: const TextStyle(
-                                                  fontSize: 13,
-                                                  color: Colors.grey,
-                                                ),
+                                              Provider<OptionChainState>(
+                                                create:
+                                                    (_) => OptionChainState(),
                                               ),
                                             ],
+                                            child: oc.OptionChainPage(
+                                              symbol: result.symbol,
+                                            ),
                                           ),
-                                        ),
-                                      ],
                                     ),
-                                    Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.center,
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 8,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color:
-                                                NerveColors.chartbgGreenLigth,
-                                            borderRadius: BorderRadius.circular(
-                                              6,
-                                            ),
-                                          ),
-                                          child: SvgPicture.asset(
-                                            'lib/Resources/Images/line_chart.svg',
-                                            width: 74,
-                                            height: 16,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 6),
-                                        Wrap(
-                                          children: [
-                                            Text(
-                                              result.percentageChange,
-                                              style: const TextStyle(
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.w500,
-                                                color: Color(0xFF27B67A),
-                                              ),
-                                            ),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              result.pointsChange,
-                                              style: const TextStyle(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w400,
-                                                color: Color(0xFF27B67A),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
+                                  );
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    border: Border(
+                                      bottom: BorderSide(
+                                        color: Colors.grey[200]!,
+                                      ),
                                     ),
-                                    Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.end,
-                                      children: [
-                                        Text(
-                                          'B ${result.bidPrice}',
+                                  ),
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
+                                    children: [
+                                      // 1. Symbol Icon / Avatar
+                                      Container(
+                                        width: 40,
+                                        height: 40,
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey[200],
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                        alignment: Alignment.center,
+                                        child: Text(
+                                          symbol.isNotEmpty
+                                              ? symbol.substring(0, 1)
+                                              : '?',
                                           style: const TextStyle(
-                                            fontSize: 13,
-                                            color: Colors.grey,
+                                            color: Colors.black,
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 16,
                                           ),
                                         ),
-                                        const SizedBox(height: 8),
-                                        Row(
-                                          children: [
-                                            Text(
-                                              'A ${result.askPrice}',
-                                              style: const TextStyle(
-                                                fontSize: 13,
-                                                color: Colors.grey,
-                                              ),
+                                      ),
+                                      const SizedBox(width: 10),
+
+                                      // 2. Symbol & Price Column
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            result.symbol,
+                                            style: const TextStyle(
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w700,
+                                              color: Colors.black,
                                             ),
-                                            const SizedBox(width: 4),
-                                            IconButton(
-                                              icon: const Icon(
-                                                Icons.show_chart,
-                                                color: Colors.grey,
-                                                size: 20,
-                                              ),
-                                              padding: EdgeInsets.zero,
-                                              constraints: const BoxConstraints(
-                                                minWidth: 24,
-                                              ),
-                                              tooltip: 'View Option Chain',
-                                              onPressed: () {
-                                                Navigator.of(context).push(
-                                                  MaterialPageRoute(
-                                                    builder:
-                                                        (
-                                                          context,
-                                                        ) => MultiProvider(
-                                                          providers: [
-                                                            ChangeNotifierProvider<
-                                                              OptionChainNotifier
-                                                            >(
-                                                              create:
-                                                                  (_) =>
-                                                                      OptionChainNotifier(),
-                                                            ),
-                                                            Provider<
-                                                              OptionChainState
-                                                            >(
-                                                              create:
-                                                                  (_) =>
-                                                                      OptionChainState(),
-                                                            ),
-                                                          ],
-                                                          child:
-                                                              oc.OptionChainPage(
-                                                                symbol:
-                                                                    result
-                                                                        .symbol,
-                                                              ),
-                                                        ),
+                                          ),
+                                          const SizedBox(height: 3),
+                                          Text(
+                                            result.price,
+                                            style: const TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w500,
+                                              color: Colors.black87,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+
+                                      const Spacer(),
+
+                                      // 3. Mini Chart & % (points) Change
+                                      Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 2,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFE8F8F0),
+                                              borderRadius:
+                                                  BorderRadius.circular(4),
+                                            ),
+                                            child: SvgPicture.asset(
+                                              'lib/Resources/Images/line_chart.svg',
+                                              width: 50,
+                                              height: 14,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 3),
+                                          Text(
+                                            '${result.percentageChange} (${result.pointsChange})',
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w600,
+                                              color: Color(0xFF27B67A),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+
+                                      const Spacer(),
+
+                                      // 4. Bid / Ask Column
+                                      Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
+                                        children: [
+                                          RichText(
+                                            text: TextSpan(
+                                              children: [
+                                                const TextSpan(
+                                                  text: 'B ',
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    color: Color(0xFF8E8E93),
+                                                    fontWeight: FontWeight.w500,
                                                   ),
-                                                );
-                                              },
+                                                ),
+                                                TextSpan(
+                                                  text: result.bidPrice,
+                                                  style: const TextStyle(
+                                                    fontSize: 12,
+                                                    color: Colors.black87,
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                ),
+                                              ],
                                             ),
-                                            IconButton(
-                                              icon: Icon(
+                                          ),
+                                          const SizedBox(height: 3),
+                                          RichText(
+                                            text: TextSpan(
+                                              children: [
+                                                const TextSpan(
+                                                  text: 'A ',
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    color: Color(0xFF8E8E93),
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                ),
+                                                TextSpan(
+                                                  text: result.askPrice,
+                                                  style: const TextStyle(
+                                                    fontSize: 12,
+                                                    color: Colors.black87,
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+
+                                      const SizedBox(width: 10),
+
+                                      // 5. Bookmark Icon
+                                      GestureDetector(
+                                        onTap: () {
+                                          searchService.toggleFavorite(
+                                            result.id,
+                                          );
+                                        },
+                                        behavior: HitTestBehavior.opaque,
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 2.0,
+                                            vertical: 4.0,
+                                          ),
+                                          child: Icon(
+                                            result.isFavorite
+                                                ? Icons.bookmark
+                                                : Icons.bookmark_border,
+                                            color:
                                                 result.isFavorite
-                                                    ? Icons.bookmark
-                                                    : Icons.bookmark_border,
-                                                color:
-                                                    result.isFavorite
-                                                        ? NerveColors
-                                                            .selectedNavColor
-                                                        : Colors.grey,
-                                              ),
-                                              padding: EdgeInsets.zero,
-                                              constraints: const BoxConstraints(
-                                                minWidth: 24,
-                                              ),
-                                              onPressed: () {
-                                                searchService.toggleFavorite(
-                                                  result.id,
-                                                );
-                                              },
-                                            ),
-                                          ],
+                                                    ? const Color(0xFFFFC600)
+                                                    : Colors.grey[400],
+                                            size: 24,
+                                          ),
                                         ),
-                                      ],
-                                    ),
-                                  ],
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               );
                             },

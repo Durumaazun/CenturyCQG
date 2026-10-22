@@ -36,9 +36,12 @@ class _WatchlistPageState extends State<WatchlistPage> {
 
   void _submitInlineRename(WatchlistService watchlistService) async {
     final newName = _nameController.text.trim();
-    final renamed = await watchlistService.submitInlineRename(newName);
+    final renamed = await watchlistService.submitInlineRename(context, newName);
     if (!renamed && mounted) {
-      _showYellowErrorSnackBar(context, 'Unable to rename watchlist');
+      _showYellowErrorSnackBar(
+        context,
+        watchlistService.watchlistMutationError ?? 'Unable to rename watchlist',
+      );
     }
   }
 
@@ -51,7 +54,17 @@ class _WatchlistPageState extends State<WatchlistPage> {
     final newName = _nameController.text.trim();
     if (newName.isNotEmpty &&
         newName != watchlistService.editingWatchlistName) {
-      await watchlistService.renameSelectedWatchlist(newName);
+      final renamed = await watchlistService.renameSelectedWatchlist(
+        context,
+        newName,
+      );
+      if (!renamed && mounted) {
+        _showYellowErrorSnackBar(
+          context,
+          watchlistService.watchlistMutationError ??
+              'Unable to rename watchlist.',
+        );
+      }
     }
     watchlistService.saveChanges();
   }
@@ -458,9 +471,8 @@ class _WatchlistPageState extends State<WatchlistPage> {
                         Expanded(
                           child: ElevatedButton(
                             onPressed: () async {
-                              final deleted =
-                                  await watchlistService
-                                      .deleteSelectedWatchlist();
+                              final deleted = await watchlistService
+                                  .deleteSelectedWatchlist(context);
                               if (!sheetContext.mounted) {
                                 return;
                               }
@@ -470,7 +482,8 @@ class _WatchlistPageState extends State<WatchlistPage> {
                               if (!deleted && context.mounted) {
                                 _showYellowErrorSnackBar(
                                   context,
-                                  'At least one watchlist is required',
+                                  watchlistService.watchlistMutationError ??
+                                      'Unable to delete watchlist.',
                                 );
                               }
                             },
@@ -500,13 +513,17 @@ class _WatchlistPageState extends State<WatchlistPage> {
       return;
     }
 
-    final deleted = await watchlistService.deleteSelectedWatchlist();
+    final deleted = await watchlistService.deleteSelectedWatchlist(context);
     if (!context.mounted) {
       return;
     }
 
     if (!deleted) {
-      _showYellowErrorSnackBar(context, 'At least one watchlist is required');
+      _showYellowErrorSnackBar(
+        context,
+        watchlistService.watchlistMutationError ??
+            'Unable to delete watchlist.',
+      );
     }
   }
 
@@ -520,6 +537,9 @@ class _WatchlistPageState extends State<WatchlistPage> {
     return Consumer<WatchlistService>(
       builder: (context, watchlistService, child) {
         final selectedWatchlistName = watchlistService.selectedWatchlistName;
+        final isFavouritesWatchlist =
+            selectedWatchlistName.trim().toLowerCase() == 'favourites' ||
+            selectedWatchlistName.trim().toLowerCase() == 'favorites';
         final List<WatchlistItem> items = watchlistService.getWatchlistItemsFor(
           selectedWatchlistName,
         );
@@ -547,6 +567,7 @@ class _WatchlistPageState extends State<WatchlistPage> {
                               child: IntrinsicWidth(
                                 child: TextField(
                                   controller: _nameController,
+                                  readOnly: isFavouritesWatchlist,
                                   style: NerveStyles.black_medium_16(
                                     isDarkMode,
                                   ).copyWith(
@@ -585,15 +606,17 @@ class _WatchlistPageState extends State<WatchlistPage> {
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 6),
-                            Icon(
-                              Icons.drive_file_rename_outline,
-                              size: 18,
-                              color:
-                                  isDarkMode
-                                      ? const Color(0xFF9AA0A6)
-                                      : const Color(0xFF5F6368),
-                            ),
+                            if (!isFavouritesWatchlist) ...[
+                              const SizedBox(width: 6),
+                              Icon(
+                                Icons.drive_file_rename_outline,
+                                size: 18,
+                                color:
+                                    isDarkMode
+                                        ? const Color(0xFF9AA0A6)
+                                        : const Color(0xFF5F6368),
+                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -751,11 +774,14 @@ class _WatchlistPageState extends State<WatchlistPage> {
                                           ),
                                           const SizedBox(height: 4),
                                           Text(
-                                            '${isPositive ? '+' : ''}${item.changePercent.toStringAsFixed(2)}% (+4.89 pts)',
-                                            style: const TextStyle(
+                                            '${isPositive ? '+' : ''}${item.changePercent.toStringAsFixed(2)}% (${isPositive ? '+' : ''}${item.pointsChange.toStringAsFixed(2)} pts)',
+                                            style: TextStyle(
                                               fontSize: 11,
                                               fontWeight: FontWeight.w600,
-                                              color: Color(0xFF27B67A),
+                                              color:
+                                                  isPositive
+                                                      ? const Color(0xFF27B67A)
+                                                      : Colors.red,
                                             ),
                                           ),
                                         ],
@@ -954,37 +980,39 @@ class _WatchlistPageState extends State<WatchlistPage> {
                               ).copyWith(height: 1.0),
                             ),
                           ),
-                        const SizedBox(width: 6),
-                        IconButton(
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(
-                            minWidth: 24,
-                            minHeight: 24,
-                          ),
-                          tooltip:
-                              isRenamingInline
-                                  ? 'Save Name'
-                                  : 'Edit WatchedList Name',
-                          onPressed: () {
-                            if (isRenamingInline) {
-                              _submitInlineRename(watchlistService);
-                            } else {
-                              _startInlineRename(watchlistService);
-                            }
-                          },
-                          icon: Icon(
-                            isRenamingInline
-                                ? Icons.check
-                                : Icons.drive_file_rename_outline,
-                            size: 18,
-                            color:
+                        if (!isFavouritesWatchlist) ...[
+                          const SizedBox(width: 6),
+                          IconButton(
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(
+                              minWidth: 24,
+                              minHeight: 24,
+                            ),
+                            tooltip:
                                 isRenamingInline
-                                    ? const Color(0xFF1DB854)
-                                    : (isDarkMode
-                                        ? const Color(0xFF9AA0A6)
-                                        : const Color(0xFF5F6368)),
+                                    ? 'Save Name'
+                                    : 'Edit WatchedList Name',
+                            onPressed: () {
+                              if (isRenamingInline) {
+                                _submitInlineRename(watchlistService);
+                              } else {
+                                _startInlineRename(watchlistService);
+                              }
+                            },
+                            icon: Icon(
+                              isRenamingInline
+                                  ? Icons.check
+                                  : Icons.drive_file_rename_outline,
+                              size: 18,
+                              color:
+                                  isRenamingInline
+                                      ? const Color(0xFF1DB854)
+                                      : (isDarkMode
+                                          ? const Color(0xFF9AA0A6)
+                                          : const Color(0xFF5F6368)),
+                            ),
                           ),
-                        ),
+                        ],
                       ],
                     ),
                   ),
@@ -1108,14 +1136,24 @@ class _WatchlistPageState extends State<WatchlistPage> {
                                 '${isPositive ? '+' : ''}${item.changePercent.toStringAsFixed(2)}%',
                                 style: NerveStyles.green_medium_14(
                                   isDarkMode,
-                                ).copyWith(color: const Color(0xFF27B67A)),
+                                ).copyWith(
+                                  color:
+                                      isPositive
+                                          ? const Color(0xFF27B67A)
+                                          : Colors.red,
+                                ),
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                '(${(item.price * 0.08).toStringAsFixed(2)} pts)',
+                                '(${isPositive ? '+' : ''}${item.pointsChange.toStringAsFixed(2)} pts)',
                                 style: NerveStyles.green_medium_12_400(
                                   isDarkMode,
-                                ).copyWith(color: const Color(0xFF27B67A)),
+                                ).copyWith(
+                                  color:
+                                      isPositive
+                                          ? const Color(0xFF27B67A)
+                                          : Colors.red,
+                                ),
                               ),
                             ],
                           ),
@@ -1126,12 +1164,12 @@ class _WatchlistPageState extends State<WatchlistPage> {
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text(
-                            'B ${(item.price + 552.17).toStringAsFixed(2)}',
+                            'B ${item.bid.toStringAsFixed(2)}',
                             style: NerveStyles.grey_medium_13(isDarkMode),
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'A ${(item.price + 547.21).toStringAsFixed(2)}',
+                            'A ${item.ask.toStringAsFixed(2)}',
                             style: NerveStyles.grey_medium_13(isDarkMode),
                           ),
                         ],

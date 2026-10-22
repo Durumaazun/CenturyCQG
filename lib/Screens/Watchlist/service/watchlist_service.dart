@@ -1,12 +1,16 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:century_cqg/Screens/Watchlist/model/watchlist_item.dart';
+import 'package:century_cqg/Screens/Watchlist/service/watchlist_repository.dart';
+import 'package:century_cqg/Network/network_manager.dart';
 
 class WatchlistService extends ChangeNotifier {
   static const String _watchedListsKey = 'watched_lists';
+  final WatchlistRepository _repository = WatchlistRepository();
 
   final List<String> _watchedLists = ['Favourites'];
-  String _dataOwnerWatchlistName = 'Favourites';
   int _selectedTabIndex = 0;
   Future<void>? _loadFuture;
 
@@ -16,47 +20,11 @@ class WatchlistService extends ChangeNotifier {
   List<Tuple2<String, WatchlistItem>> _editableItems = [];
   Set<String> _selectedAddToWatchlistNames = {};
   String? _createWatchlistErrorText;
+  String? _watchlistMutationError;
+  bool _isLoadingWatchlists = false;
+  String? _watchlistsError;
 
-  final Map<String, List<WatchlistItem>> _watchlistItemsMap = {
-    'Favourites': [
-      const WatchlistItem(
-        symbol: 'AAPL',
-        companyName: 'Apple Inc.',
-        price: 577.87,
-        changePercent: 3.76,
-      ),
-      const WatchlistItem(
-        symbol: 'NVDA',
-        companyName: 'NVIDIA Corp.',
-        price: 577.87,
-        changePercent: 3.76,
-      ),
-      const WatchlistItem(
-        symbol: 'TSLA',
-        companyName: 'Tesla Inc.',
-        price: 577.87,
-        changePercent: 3.76,
-      ),
-      const WatchlistItem(
-        symbol: 'AAPL',
-        companyName: 'Apple Inc.',
-        price: 577.87,
-        changePercent: 3.76,
-      ),
-      const WatchlistItem(
-        symbol: 'NVDA',
-        companyName: 'NVIDIA Corp.',
-        price: 577.87,
-        changePercent: 3.76,
-      ),
-      const WatchlistItem(
-        symbol: 'TSLA',
-        companyName: 'Tesla Inc.',
-        price: 577.87,
-        changePercent: 3.76,
-      ),
-    ],
-  };
+  final Map<String, List<WatchlistItem>> _watchlistItemsMap = {};
 
   List<String> get watchedLists => List.unmodifiable(_watchedLists);
 
@@ -77,6 +45,14 @@ class WatchlistService extends ChangeNotifier {
       List.unmodifiable(_editableItems);
   Set<String> get selectedAddToWatchlistNames => _selectedAddToWatchlistNames;
   String? get createWatchlistErrorText => _createWatchlistErrorText;
+  String? get watchlistMutationError => _watchlistMutationError;
+  bool get isLoadingWatchlists => _isLoadingWatchlists;
+  String? get watchlistsError => _watchlistsError;
+
+  bool _isFavouritesWatchlist(String name) {
+    final normalizedName = name.trim().toLowerCase();
+    return normalizedName == 'favourites' || normalizedName == 'favorites';
+  }
 
   List<WatchlistItem> getWatchlistItems() {
     return getWatchlistItemsFor(selectedWatchlistName);
@@ -90,33 +66,6 @@ class WatchlistService extends ChangeNotifier {
   }
 
   List<WatchlistItem> getWatchlistItemsFor(String watchlistName) {
-    if (!_watchlistItemsMap.containsKey(watchlistName)) {
-      if (watchlistName.toLowerCase() ==
-          _dataOwnerWatchlistName.toLowerCase()) {
-        _watchlistItemsMap[watchlistName] = [
-          const WatchlistItem(
-            symbol: 'AAPL',
-            companyName: 'Apple Inc.',
-            price: 577.87,
-            changePercent: 3.76,
-          ),
-          const WatchlistItem(
-            symbol: 'NVDA',
-            companyName: 'NVIDIA Corp.',
-            price: 577.87,
-            changePercent: 3.76,
-          ),
-          const WatchlistItem(
-            symbol: 'TSLA',
-            companyName: 'Tesla Inc.',
-            price: 577.87,
-            changePercent: 3.76,
-          ),
-        ];
-      } else {
-        _watchlistItemsMap[watchlistName] = [];
-      }
-    }
     return List.unmodifiable(_watchlistItemsMap[watchlistName] ?? []);
   }
 
@@ -146,6 +95,9 @@ class WatchlistService extends ChangeNotifier {
   }
 
   void startInlineRename() {
+    if (_isFavouritesWatchlist(selectedWatchlistName)) {
+      return;
+    }
     _isRenamingInline = true;
     notifyListeners();
   }
@@ -155,11 +107,17 @@ class WatchlistService extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> submitInlineRename(String newName) async {
+  Future<bool> submitInlineRename(BuildContext context, String newName) async {
     final trimmed = newName.trim();
+    if (_isFavouritesWatchlist(selectedWatchlistName)) {
+      _isRenamingInline = false;
+      _watchlistMutationError = 'Favourites cannot be renamed.';
+      notifyListeners();
+      return false;
+    }
     bool success = true;
     if (trimmed.isNotEmpty && trimmed != selectedWatchlistName) {
-      success = await renameSelectedWatchlist(trimmed);
+      success = await renameSelectedWatchlist(context, trimmed);
     }
     _isRenamingInline = false;
     notifyListeners();
@@ -246,23 +204,116 @@ class WatchlistService extends ChangeNotifier {
     return _loadFuture!;
   }
 
+  Future<void> fetchWatchlists(BuildContext context) async {
+    _isLoadingWatchlists = true;
+    _watchlistsError = null;
+    notifyListeners();
+
+    try {
+      final response = await _repository.fetchWatchlists(context);
+      if (!context.mounted) return;
+
+      if (response is NetworkResponse) {
+        _watchlistsError = _responseError(
+          response,
+          'Unable to load watchlists.',
+        );
+        return;
+      }
+
+      final Map<String, dynamic>? responseMap =
+          response is Map ? Map<String, dynamic>.from(response) : null;
+      final watchlistData = responseMap?['watchlist'];
+      final data =
+          watchlistData is List
+              ? watchlistData
+              : response is List
+              ? response
+              : responseMap?['data'] is List
+              ? responseMap!['data'] as List
+              : null;
+      if (data == null) {
+        _watchlistsError = 'The watchlists response is invalid.';
+        return;
+      }
+
+      final names = <String>[];
+      for (final item in data) {
+        final rawName =
+            item is Map ? item['name'] ?? item['watchlistName'] : item;
+        final name = rawName?.toString().trim() ?? '';
+        if (name.isNotEmpty &&
+            !names.any(
+              (existing) => existing.toLowerCase() == name.toLowerCase(),
+            )) {
+          names.add(name);
+        }
+      }
+
+      final itemsByWatchlist = <String, List<WatchlistItem>>{};
+      if (responseMap != null) {
+        for (final entry in responseMap.entries) {
+          if (entry.value is! List ||
+              entry.key == 'watchlist' ||
+              entry.key == 'data') {
+            continue;
+          }
+
+          final key = entry.key.toLowerCase();
+          final watchlistName =
+              key == 'fav'
+                  ? names.cast<String?>().firstWhere(
+                    (name) =>
+                        name?.toLowerCase() == 'favourites' ||
+                        name?.toLowerCase() == 'favorites',
+                    orElse: () => null,
+                  )
+                  : names.cast<String?>().firstWhere(
+                    (name) => name?.toLowerCase() == key,
+                    orElse: () => null,
+                  );
+          if (watchlistName == null) continue;
+
+          itemsByWatchlist[watchlistName] =
+              (entry.value as List)
+                  .whereType<Map>()
+                  .map(
+                    (item) =>
+                        WatchlistItem.fromJson(Map<String, dynamic>.from(item)),
+                  )
+                  .toList();
+        }
+      }
+
+      final previousSelection = selectedWatchlistName;
+      _watchedLists
+        ..clear()
+        ..addAll(names);
+      _watchlistItemsMap
+        ..clear()
+        ..addAll(itemsByWatchlist);
+      _selectedTabIndex = _watchedLists.indexWhere(
+        (name) => name.toLowerCase() == previousSelection.toLowerCase(),
+      );
+      if (_selectedTabIndex < 0) {
+        _selectedTabIndex = 0;
+      }
+
+      await _persistWatchedLists();
+    } finally {
+      _isLoadingWatchlists = false;
+      notifyListeners();
+    }
+  }
+
   Future<void> _loadWatchedListsInternal() async {
     final prefs = await SharedPreferences.getInstance();
     final saved = prefs.getStringList(_watchedListsKey);
 
-    if (saved == null || saved.isEmpty) {
-      return;
-    }
-
-    _watchedLists
-      ..clear()
-      ..addAll(saved);
-
-    // Keep sample data attached to whichever list previously represented favourites.
-    if (!_watchedLists.any(
-      (name) => name.toLowerCase() == _dataOwnerWatchlistName.toLowerCase(),
-    )) {
-      _dataOwnerWatchlistName = _watchedLists.first;
+    if (saved != null && saved.isNotEmpty) {
+      _watchedLists
+        ..clear()
+        ..addAll(saved);
     }
 
     if (_selectedTabIndex >= _watchedLists.length) {
@@ -277,11 +328,32 @@ class WatchlistService extends ChangeNotifier {
     await prefs.setStringList(_watchedListsKey, _watchedLists);
   }
 
-  Future<bool> addWatchedList(String name) async {
-    await loadWatchedLists();
+  String _responseError(Object? response, String fallback) {
+    if (response is NetworkResponse) {
+      try {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map) {
+          final message = decoded['message'] ?? decoded['error'];
+          if (message != null && message.toString().trim().isNotEmpty) {
+            return message.toString();
+          }
+        }
+      } on FormatException {
+        // Use the status code when the server did not return JSON.
+      }
+      return '$fallback (${response.statusCode})';
+    }
+    return fallback;
+  }
 
+  Future<bool> addWatchedList(BuildContext context, String name) async {
+    await loadWatchedLists();
+    if (!context.mounted) return false;
+
+    _watchlistMutationError = null;
     final trimmedName = name.trim();
     if (trimmedName.isEmpty) {
+      _watchlistMutationError = 'Watchlist name is required.';
       return false;
     }
 
@@ -289,15 +361,29 @@ class WatchlistService extends ChangeNotifier {
       (item) => item.toLowerCase() == trimmedName.toLowerCase(),
     );
 
-    if (!alreadyExists) {
-      _watchedLists.add(trimmedName);
-      _selectedTabIndex = _watchedLists.length - 1;
-      await _persistWatchedLists();
-      notifyListeners();
-      return true;
+    if (alreadyExists) {
+      _watchlistMutationError = 'Watchlist already exists.';
+      return false;
     }
 
-    return false;
+    final response = await _repository.addWatchlist(
+      context,
+      watchlistName: trimmedName,
+    );
+    if (response == null || response is NetworkResponse) {
+      _watchlistMutationError = _responseError(
+        response,
+        'Unable to create watchlist.',
+      );
+      notifyListeners();
+      return false;
+    }
+
+    _watchedLists.add(trimmedName);
+    _selectedTabIndex = _watchedLists.length - 1;
+    await _persistWatchedLists();
+    notifyListeners();
+    return true;
   }
 
   void setSelectedTabIndex(int index) {
@@ -306,6 +392,7 @@ class WatchlistService extends ChangeNotifier {
     }
     if (_selectedTabIndex != index) {
       _selectedTabIndex = index;
+      _isRenamingInline = false;
       notifyListeners();
     }
   }
@@ -325,15 +412,28 @@ class WatchlistService extends ChangeNotifier {
     }
   }
 
-  Future<bool> renameSelectedWatchlist(String newName) async {
+  Future<bool> renameSelectedWatchlist(
+    BuildContext context,
+    String newName,
+  ) async {
     await loadWatchedLists();
+    if (!context.mounted) return false;
+    _watchlistMutationError = null;
 
     if (_watchedLists.isEmpty) {
+      _watchlistMutationError = 'No watchlist is selected.';
+      return false;
+    }
+
+    final oldName = _watchedLists[selectedTabIndex];
+    if (_isFavouritesWatchlist(oldName)) {
+      _watchlistMutationError = 'Favourites cannot be renamed.';
       return false;
     }
 
     final trimmedName = newName.trim();
     if (trimmedName.isEmpty) {
+      _watchlistMutationError = 'Watchlist name is required.';
       return false;
     }
 
@@ -343,41 +443,64 @@ class WatchlistService extends ChangeNotifier {
     );
 
     if (duplicateIndex != -1 && duplicateIndex != currentIndex) {
+      _watchlistMutationError = 'Watchlist already exists.';
       return false;
     }
 
-    final oldName = _watchedLists[currentIndex];
-    _watchedLists[currentIndex] = trimmedName;
-
-    // Renaming must not change list data ownership.
-    if (oldName.toLowerCase() == _dataOwnerWatchlistName.toLowerCase()) {
-      _dataOwnerWatchlistName = trimmedName;
+    final response = await _repository.renameWatchlist(
+      context,
+      oldName: oldName,
+      newName: trimmedName,
+    );
+    if (response == null || response is NetworkResponse) {
+      _watchlistMutationError = _responseError(
+        response,
+        'Unable to rename watchlist.',
+      );
+      notifyListeners();
+      return false;
     }
 
+    _watchedLists[currentIndex] = trimmedName;
+    final renamedItems = _watchlistItemsMap.remove(oldName);
+    if (renamedItems != null) {
+      _watchlistItemsMap[trimmedName] = renamedItems;
+    }
     await _persistWatchedLists();
     notifyListeners();
     return true;
   }
 
-  Future<bool> deleteSelectedWatchlist() async {
+  Future<bool> deleteSelectedWatchlist(BuildContext context) async {
     await loadWatchedLists();
+    if (!context.mounted) return false;
+    _watchlistMutationError = null;
 
     if (_watchedLists.length <= 1) {
+      _watchlistMutationError = 'At least one watchlist is required.';
       return false;
     }
 
+    final selectedName = _watchedLists[selectedTabIndex];
+    final response = await _repository.deleteWatchlist(
+      context,
+      watchlistName: selectedName,
+    );
+    if (response == null || response is NetworkResponse) {
+      _watchlistMutationError = _responseError(
+        response,
+        'Unable to delete watchlist.',
+      );
+      notifyListeners();
+      return false;
+    }
     final removedName = _watchedLists[selectedTabIndex];
     _watchedLists.removeAt(selectedTabIndex);
-
-    if (_watchedLists.isNotEmpty &&
-        removedName.toLowerCase() == _dataOwnerWatchlistName.toLowerCase()) {
-      _dataOwnerWatchlistName = _watchedLists.first;
-    }
+    _watchlistItemsMap.remove(removedName);
 
     if (_selectedTabIndex >= _watchedLists.length) {
       _selectedTabIndex = _watchedLists.length - 1;
     }
-
     await _persistWatchedLists();
     notifyListeners();
     return true;

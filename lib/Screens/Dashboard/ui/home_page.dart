@@ -30,6 +30,17 @@ class MobileHomePageState extends State<MobileHomePage> {
     'Scalper',
   ];
 
+  @override
+  void initState() {
+    super.initState();
+    final dashboardService = context.read<DashboardService>();
+    dashboardService.callAccountSummary(context);
+    dashboardService.callWatchedStocks(context);
+    dashboardService.callTopPositions(context);
+    dashboardService.callActivityFeed(context);
+    dashboardService.callMarketUpdates(context, category: 'trending');
+  }
+
   Widget _buildPageContent(
     bool isDarkMode,
     int selectedIndex,
@@ -90,7 +101,7 @@ class MobileHomePageState extends State<MobileHomePage> {
                 ? const CommonAppbar(title: 'Trades')
                 : null,
         body: SafeArea(
-          top: false,
+          top: selectedIndex == 0 || selectedIndex == 4,
           child: Container(
             width: NerveBase().screenWidth,
             color: bgColor,
@@ -326,6 +337,10 @@ class MobileHomePageState extends State<MobileHomePage> {
             ],
             onTap: (index) {
               context.read<DashboardService>().setSelectedHomeTabIndex(index);
+              if (index == 1) {
+                //watchlist
+                context.read<WatchlistService>().fetchWatchlists(context);
+              }
             },
           ),
         ),
