@@ -4,9 +4,9 @@ import 'package:provider/provider.dart';
 import 'package:century_cqg/Helper/nerve_base.dart';
 import 'package:century_cqg/Helper/nerve_colors.dart';
 import 'package:century_cqg/Helper/nerve_styles.dart';
-import 'package:century_cqg/Screens/Watchlist/model/watchlist_item.dart';
+import 'package:century_cqg/Screens/Watchlist/model/get_symbol_from_watchlist_response.dart';
 import 'package:century_cqg/Screens/Watchlist/service/watchlist_service.dart';
-import 'package:century_cqg/Screens/Watchlist/ui/create_watchlist_page.dart';
+import 'package:century_cqg/Screens/Watchlist/ui/watchlist_dialogs.dart';
 
 class WatchlistPage extends StatefulWidget {
   const WatchlistPage({super.key});
@@ -18,6 +18,7 @@ class WatchlistPage extends StatefulWidget {
 class _WatchlistPageState extends State<WatchlistPage> {
   final TextEditingController _nameController = TextEditingController();
   final FocusNode _renameFocusNode = FocusNode();
+  bool _isApplyingChanges = false;
 
   @override
   void dispose() {
@@ -50,23 +51,60 @@ class _WatchlistPageState extends State<WatchlistPage> {
     watchlistService.enterEditMode();
   }
 
-  void _saveChanges(WatchlistService watchlistService) async {
-    final newName = _nameController.text.trim();
-    if (newName.isNotEmpty &&
-        newName != watchlistService.editingWatchlistName) {
-      final renamed = await watchlistService.renameSelectedWatchlist(
-        context,
-        newName,
-      );
-      if (!renamed && mounted) {
+  Future<void> _saveChanges(WatchlistService watchlistService) async {
+    if (_isApplyingChanges) {
+      return;
+    }
+    setState(() => _isApplyingChanges = true);
+
+    try {
+      final watchlistName = watchlistService.editingWatchlistName;
+      if (watchlistName == null || watchlistName.trim().isEmpty) {
         _showYellowErrorSnackBar(
           context,
-          watchlistService.watchlistMutationError ??
-              'Unable to rename watchlist.',
+          'Select a watchlist before applying changes.',
+        );
+        return;
+      }
+
+      await watchlistService.getSymbolsFromWatchlist(watchlistName);
+      if (!mounted) {
+        return;
+      }
+
+      final newName = _nameController.text.trim();
+      if (newName.isNotEmpty &&
+          newName != watchlistService.editingWatchlistName) {
+        final renamed = await watchlistService.renameSelectedWatchlist(
+          context,
+          newName,
+        );
+        if (!mounted) {
+          return;
+        }
+        if (!renamed) {
+          _showYellowErrorSnackBar(
+            context,
+            watchlistService.watchlistMutationError ??
+                'Unable to rename watchlist.',
+          );
+          return;
+        }
+      }
+
+      watchlistService.saveChanges();
+    } on Exception catch (error) {
+      if (mounted) {
+        _showYellowErrorSnackBar(
+          context,
+          'Unable to apply watchlist changes: $error',
         );
       }
+    } finally {
+      if (mounted) {
+        setState(() => _isApplyingChanges = false);
+      }
     }
-    watchlistService.saveChanges();
   }
 
   void _cancelEditMode(WatchlistService watchlistService) {
@@ -244,20 +282,20 @@ class _WatchlistPageState extends State<WatchlistPage> {
                                 child: OutlinedButton(
                                   onPressed: () async {
                                     Navigator.of(sheetContext).pop();
-                                    final createdName = await Navigator.of(
-                                      context,
-                                    ).push<String>(
-                                      MaterialPageRoute(
-                                        builder:
-                                            (_) => const CreateWatchlistPage(),
-                                      ),
-                                    );
+                                    final createdName =
+                                        await showCreateWatchlistDialog(
+                                          context,
+                                          watchlistService,
+                                        );
                                     if (!context.mounted) {
                                       return;
                                     }
                                     if (createdName != null) {
                                       watchlistService.selectWatchlistByName(
                                         createdName,
+                                      );
+                                      watchlistService.fetchWatchlistSymbols(
+                                        watchlistName: createdName,
                                       );
                                     }
                                   },
@@ -289,7 +327,7 @@ class _WatchlistPageState extends State<WatchlistPage> {
                                     foregroundColor: Colors.black,
                                     minimumSize: const Size.fromHeight(44),
                                   ),
-                                  child: const Text('Done'),
+                                  child: const Text('Apply'),
                                 ),
                               ),
                             ],
@@ -404,135 +442,14 @@ class _WatchlistPageState extends State<WatchlistPage> {
     }
   }
 
-  Future<void> _deleteSelectedWatchlist(
-    BuildContext context,
-    WatchlistService watchlistService,
-  ) async {
-    if (watchlistService.watchedLists.length > 1) {
-      final watchlistName =
-          watchlistService.watchedLists[watchlistService.selectedTabIndex];
-
-      await showModalBottomSheet<void>(
-        context: context,
-        isScrollControlled: true,
-        isDismissible: true,
-        enableDrag: true,
-        backgroundColor: Colors.transparent,
-        builder: (sheetContext) {
-          final isDarkMode = NerveBase().isDarkMode;
-          final panelColor =
-              isDarkMode ? const Color(0xFF0D110F) : Colors.white;
-          final borderColor =
-              isDarkMode ? const Color(0xFF484E4B) : const Color(0xFFD8DDE3);
-          final titleColor =
-              isDarkMode ? Colors.white : const Color(0xFF2A2A2A);
-
-          return SafeArea(
-            child: Align(
-              alignment: Alignment.bottomCenter,
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: panelColor,
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(16),
-                    topRight: Radius.circular(16),
-                  ),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Delete $watchlistName',
-                      style: NerveStyles.black_medium_16(
-                        isDarkMode,
-                      ).copyWith(color: titleColor),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () => Navigator.of(sheetContext).pop(),
-                            style: OutlinedButton.styleFrom(
-                              side: BorderSide(color: borderColor),
-                              foregroundColor:
-                                  isDarkMode
-                                      ? const Color(0xFFB6BAB8)
-                                      : const Color(0xFF5F6368),
-                              minimumSize: const Size.fromHeight(44),
-                            ),
-                            child: const Text('Cancel'),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () async {
-                              final deleted = await watchlistService
-                                  .deleteSelectedWatchlist(context);
-                              if (!sheetContext.mounted) {
-                                return;
-                              }
-
-                              Navigator.of(sheetContext).pop();
-
-                              if (!deleted && context.mounted) {
-                                _showYellowErrorSnackBar(
-                                  context,
-                                  watchlistService.watchlistMutationError ??
-                                      'Unable to delete watchlist.',
-                                );
-                              }
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFE03A55),
-                              foregroundColor: Colors.white,
-                              minimumSize: const Size.fromHeight(44),
-                            ),
-                            child: const Text(
-                              'Delete',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
-      );
-      return;
-    }
-
-    final deleted = await watchlistService.deleteSelectedWatchlist(context);
-    if (!context.mounted) {
-      return;
-    }
-
-    if (!deleted) {
-      _showYellowErrorSnackBar(
-        context,
-        watchlistService.watchlistMutationError ??
-            'Unable to delete watchlist.',
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final isDarkMode = NerveBase().isDarkMode;
     final backgroundColor =
         isDarkMode ? const Color(0xFF0D110F) : const Color(0xFFFFFFFF);
     final titleColor = isDarkMode ? Colors.white : const Color(0xFF2A2A2A);
+    final reorderHandleColor =
+        isDarkMode ? Colors.grey[600]! : const Color(0xFFB0B7B3);
 
     return Consumer<WatchlistService>(
       builder: (context, watchlistService, child) {
@@ -540,18 +457,29 @@ class _WatchlistPageState extends State<WatchlistPage> {
         final isFavouritesWatchlist =
             selectedWatchlistName.trim().toLowerCase() == 'favourites' ||
             selectedWatchlistName.trim().toLowerCase() == 'favorites';
-        final List<WatchlistItem> items = watchlistService.getWatchlistItemsFor(
+        final List<ProductItem> items = watchlistService.getWatchlistItemsFor(
           selectedWatchlistName,
         );
 
         if (watchlistService.isEditing) {
           final editableItems = watchlistService.editableItems;
+          final selectedItemKeys = watchlistService.selectedEditableItemKeys;
+          final hasChanges =
+              watchlistService.hasEditableItemsReordered ||
+              selectedItemKeys.isNotEmpty ||
+              _nameController.text.trim() !=
+                  watchlistService.editingWatchlistName;
+          final canApply = hasChanges && !_isApplyingChanges;
+          final areAllItemsSelected =
+              editableItems.isNotEmpty &&
+              selectedItemKeys.length == editableItems.length;
 
           return Container(
             width: double.infinity,
             color: backgroundColor,
             child: Column(
               children: [
+                // Keep watchlist-level name and delete actions above symbol selection.
                 Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 14,
@@ -567,7 +495,10 @@ class _WatchlistPageState extends State<WatchlistPage> {
                               child: IntrinsicWidth(
                                 child: TextField(
                                   controller: _nameController,
-                                  readOnly: isFavouritesWatchlist,
+                                  onChanged: (_) => setState(() {}),
+                                  readOnly:
+                                      isFavouritesWatchlist ||
+                                      _isApplyingChanges,
                                   style: NerveStyles.black_medium_16(
                                     isDarkMode,
                                   ).copyWith(
@@ -620,24 +551,55 @@ class _WatchlistPageState extends State<WatchlistPage> {
                           ],
                         ),
                       ),
-                      IconButton(
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(
-                          minWidth: 24,
-                          minHeight: 24,
-                        ),
-                        icon: const Icon(
-                          Icons.delete_outline,
-                          color: Color(0xFFD32F2F),
-                          size: 22,
-                        ),
-                        tooltip: 'Delete Watchlist',
-                        onPressed:
-                            () => _deleteSelectedWatchlist(
-                              context,
-                              watchlistService,
-                            ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 2,
+                  ),
+                  child: Row(
+                    children: [
+                      Checkbox(
+                        value:
+                            areAllItemsSelected
+                                ? true
+                                : selectedItemKeys.isEmpty
+                                ? false
+                                : null,
+                        tristate: true,
+                        visualDensity: VisualDensity.compact,
+                        activeColor: const Color(0xFFF2C400),
+                        checkColor: Colors.black,
+                        side: BorderSide(color: reorderHandleColor),
+                        onChanged:
+                            editableItems.isEmpty || _isApplyingChanges
+                                ? null
+                                : (_) =>
+                                    watchlistService
+                                        .toggleSelectAllEditableItems(),
                       ),
+                      GestureDetector(
+                        onTap:
+                            editableItems.isEmpty || _isApplyingChanges
+                                ? null
+                                : () {
+                                  if (!areAllItemsSelected) {
+                                    watchlistService
+                                        .toggleSelectAllEditableItems();
+                                  }
+                                },
+                        child: Text(
+                          'Delete All',
+                          style: TextStyle(
+                            color: const Color(0xFFD32F2F),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      const Spacer(),
                     ],
                   ),
                 ),
@@ -667,20 +629,22 @@ class _WatchlistPageState extends State<WatchlistPage> {
                               ),
                               itemCount: editableItems.length,
                               onReorder: (oldIndex, newIndex) {
-                                watchlistService.reorderEditableItem(
-                                  oldIndex,
-                                  newIndex,
-                                );
+                                if (!_isApplyingChanges) {
+                                  watchlistService.reorderEditableItem(
+                                    oldIndex,
+                                    newIndex,
+                                  );
+                                }
                               },
                               itemBuilder: (context, index) {
                                 final tuple = editableItems[index];
                                 final item = tuple.item2;
-                                final isPositive = item.changePercent >= 0;
+                                final isPositive = item.percentageChange >= 0;
 
                                 return Container(
                                   key: ValueKey(tuple.item1),
                                   padding: const EdgeInsets.symmetric(
-                                    vertical: 10,
+                                    vertical: 6,
                                     horizontal: 4,
                                   ),
                                   decoration: BoxDecoration(
@@ -695,23 +659,25 @@ class _WatchlistPageState extends State<WatchlistPage> {
                                   ),
                                   child: Row(
                                     children: [
-                                      ReorderableDragStartListener(
-                                        index: index,
-                                        child: Padding(
-                                          padding: const EdgeInsets.only(
-                                            right: 12,
-                                            left: 4,
-                                          ),
-                                          child: Icon(
-                                            Icons.menu,
-                                            color:
-                                                isDarkMode
-                                                    ? Colors.grey[600]
-                                                    : const Color(0xFFB0B7B3),
-                                            size: 20,
-                                          ),
+                                      Checkbox(
+                                        value: selectedItemKeys.contains(
+                                          tuple.item1,
                                         ),
+                                        visualDensity: VisualDensity.compact,
+                                        activeColor: const Color(0xFFF2C400),
+                                        checkColor: Colors.black,
+                                        side: BorderSide(
+                                          color: reorderHandleColor,
+                                        ),
+                                        onChanged:
+                                            _isApplyingChanges
+                                                ? null
+                                                : (_) => watchlistService
+                                                    .toggleEditableItemSelection(
+                                                      tuple.item1,
+                                                    ),
                                       ),
+                                      const SizedBox(width: 4),
                                       _buildCompanyLogo(item.symbol),
                                       const SizedBox(width: 12),
                                       Expanded(
@@ -774,7 +740,7 @@ class _WatchlistPageState extends State<WatchlistPage> {
                                           ),
                                           const SizedBox(height: 4),
                                           Text(
-                                            '${isPositive ? '+' : ''}${item.changePercent.toStringAsFixed(2)}% (${isPositive ? '+' : ''}${item.pointsChange.toStringAsFixed(2)} pts)',
+                                            '${isPositive ? '+' : ''}${item.percentageChange.toStringAsFixed(2)}% (${isPositive ? '+' : ''}${item.pointsChange.toStringAsFixed(2)} pts)',
                                             style: TextStyle(
                                               fontSize: 11,
                                               fontWeight: FontWeight.w600,
@@ -787,21 +753,17 @@ class _WatchlistPageState extends State<WatchlistPage> {
                                         ],
                                       ),
                                       const SizedBox(width: 8),
-                                      InkWell(
-                                        onTap: () {
-                                          watchlistService.removeEditableItem(
-                                            index,
-                                          );
-                                        },
-                                        borderRadius: BorderRadius.circular(12),
+                                      ReorderableDragStartListener(
+                                        index: index,
+                                        enabled: !_isApplyingChanges,
                                         child: Padding(
-                                          padding: const EdgeInsets.all(6),
+                                          padding: const EdgeInsets.only(
+                                            left: 4,
+                                            right: 4,
+                                          ),
                                           child: Icon(
-                                            Icons.close,
-                                            color:
-                                                isDarkMode
-                                                    ? Colors.grey[400]
-                                                    : const Color(0xFF9E9E9E),
+                                            Icons.menu,
+                                            color: reorderHandleColor,
                                             size: 20,
                                           ),
                                         ),
@@ -865,22 +827,40 @@ class _WatchlistPageState extends State<WatchlistPage> {
                         child: SizedBox(
                           height: 40,
                           child: ElevatedButton(
-                            onPressed: () => _saveChanges(watchlistService),
+                            onPressed:
+                                canApply
+                                    ? () => _saveChanges(watchlistService)
+                                    : null,
                             style: ElevatedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 0),
-                              backgroundColor: const Color(0xFFF2C400),
-                              foregroundColor: Colors.black,
+                              backgroundColor:
+                                  canApply
+                                      ? const Color(0xFFF2C400)
+                                      : isDarkMode
+                                      ? Colors.grey[800]
+                                      : Colors.grey[300],
+                              foregroundColor:
+                                  canApply
+                                      ? Colors.black
+                                      : isDarkMode
+                                      ? Colors.white38
+                                      : Colors.black38,
                               elevation: 0,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
                             ),
-                            child: const Text(
-                              'Done',
+                            child: Text(
+                              'Apply',
                               style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.black,
+                                color:
+                                    canApply
+                                        ? Colors.black
+                                        : isDarkMode
+                                        ? Colors.white38
+                                        : Colors.black38,
                               ),
                             ),
                           ),
@@ -1056,30 +1036,64 @@ class _WatchlistPageState extends State<WatchlistPage> {
                   ],
                 ],
               ),
-              (items.isEmpty)
-                  ? Center(
-                    child: Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFC600),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: IconButton(
-                        padding: EdgeInsets.zero,
-                        iconSize: 22,
-                        onPressed:
-                            () => _showAddToWatchlistBottomSheet(
-                              context,
-                              watchlistService,
-                            ),
-                        icon: const Icon(Icons.add, color: Colors.black),
-                      ),
+              if (items.isEmpty && watchlistService.isLoadingWatchlistSymbols)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: Center(
+                    child: CircularProgressIndicator(color: Color(0xFFFFC600)),
+                  ),
+                )
+              else if (items.isEmpty &&
+                  watchlistService.watchlistSymbolsError != null)
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    child: Column(
+                      children: [
+                        Text(
+                          watchlistService.watchlistSymbolsError!,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: isDarkMode ? Colors.white70 : Colors.black54,
+                          ),
+                        ),
+                        TextButton.icon(
+                          onPressed:
+                              () => watchlistService.fetchWatchlistSymbols(
+                                watchlistName: selectedWatchlistName,
+                              ),
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Retry'),
+                        ),
+                      ],
                     ),
-                  )
-                  : const SizedBox(height: 2),
+                  ),
+                )
+              else if (items.isEmpty)
+                Center(
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFC600),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: IconButton(
+                      padding: EdgeInsets.zero,
+                      iconSize: 22,
+                      onPressed:
+                          () => _showAddToWatchlistBottomSheet(
+                            context,
+                            watchlistService,
+                          ),
+                      icon: const Icon(Icons.add, color: Colors.black),
+                    ),
+                  ),
+                )
+              else
+                const SizedBox(height: 2),
               ...items.map((item) {
-                final isPositive = item.changePercent >= 0;
+                final isPositive = item.percentageChange >= 0;
 
                 return Container(
                   padding: const EdgeInsets.symmetric(vertical: 10),
@@ -1133,7 +1147,7 @@ class _WatchlistPageState extends State<WatchlistPage> {
                           Wrap(
                             children: [
                               Text(
-                                '${isPositive ? '+' : ''}${item.changePercent.toStringAsFixed(2)}%',
+                                '${isPositive ? '+' : ''}${item.percentageChange.toStringAsFixed(2)}%',
                                 style: NerveStyles.green_medium_14(
                                   isDarkMode,
                                 ).copyWith(

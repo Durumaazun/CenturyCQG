@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:century_cqg/Screens/Watchlist/model/get_symbol_from_watchlist_response.dart';
 import 'package:century_cqg/Screens/Watchlist/model/watchlist_item.dart';
 import 'package:century_cqg/Screens/Watchlist/service/watchlist_repository.dart';
 import 'package:century_cqg/Network/network_manager.dart';
@@ -17,14 +18,19 @@ class WatchlistService extends ChangeNotifier {
   bool _isEditing = false;
   bool _isRenamingInline = false;
   String? _editingWatchlistName;
-  List<Tuple2<String, WatchlistItem>> _editableItems = [];
+  List<Tuple2<String, ProductItem>> _editableItems = [];
+  List<String> _editableItemOrderAtEditStart = [];
+  final Set<String> _selectedEditableItemKeys = {};
   Set<String> _selectedAddToWatchlistNames = {};
   String? _createWatchlistErrorText;
   String? _watchlistMutationError;
   bool _isLoadingWatchlists = false;
   String? _watchlistsError;
+  bool _isLoadingWatchlistSymbols = false;
+  String? _watchlistSymbolsError;
+  int _watchlistSymbolsRequestId = 0;
 
-  final Map<String, List<WatchlistItem>> _watchlistItemsMap = {};
+  final Map<String, List<ProductItem>> _watchlistItemsMap = {};
 
   List<String> get watchedLists => List.unmodifiable(_watchedLists);
 
@@ -41,20 +47,40 @@ class WatchlistService extends ChangeNotifier {
   bool get isEditing => _isEditing;
   bool get isRenamingInline => _isRenamingInline;
   String? get editingWatchlistName => _editingWatchlistName;
-  List<Tuple2<String, WatchlistItem>> get editableItems =>
+  List<Tuple2<String, ProductItem>> get editableItems =>
       List.unmodifiable(_editableItems);
+  bool get hasEditableItemsReordered {
+    final currentKeys = _editableItems.map((item) => item.item1).toList();
+    final currentKeySet = currentKeys.toSet();
+    final originalRemainingOrder =
+        _editableItemOrderAtEditStart.where(currentKeySet.contains).toList();
+    if (currentKeys.length != originalRemainingOrder.length) {
+      return true;
+    }
+    for (var index = 0; index < currentKeys.length; index++) {
+      if (currentKeys[index] != originalRemainingOrder[index]) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  Set<String> get selectedEditableItemKeys =>
+      Set.unmodifiable(_selectedEditableItemKeys);
   Set<String> get selectedAddToWatchlistNames => _selectedAddToWatchlistNames;
   String? get createWatchlistErrorText => _createWatchlistErrorText;
   String? get watchlistMutationError => _watchlistMutationError;
   bool get isLoadingWatchlists => _isLoadingWatchlists;
   String? get watchlistsError => _watchlistsError;
+  bool get isLoadingWatchlistSymbols => _isLoadingWatchlistSymbols;
+  String? get watchlistSymbolsError => _watchlistSymbolsError;
 
   bool _isFavouritesWatchlist(String name) {
     final normalizedName = name.trim().toLowerCase();
     return normalizedName == 'favourites' || normalizedName == 'favorites';
   }
 
-  List<WatchlistItem> getWatchlistItems() {
+  List<ProductItem> getWatchlistItems() {
     return getWatchlistItemsFor(selectedWatchlistName);
   }
 
@@ -65,12 +91,12 @@ class WatchlistService extends ChangeNotifier {
     return _watchedLists[selectedTabIndex];
   }
 
-  List<WatchlistItem> getWatchlistItemsFor(String watchlistName) {
+  List<ProductItem> getWatchlistItemsFor(String watchlistName) {
     return List.unmodifiable(_watchlistItemsMap[watchlistName] ?? []);
   }
 
-  void setWatchlistItemsFor(String watchlistName, List<WatchlistItem> items) {
-    _watchlistItemsMap[watchlistName] = List<WatchlistItem>.from(items);
+  void setWatchlistItemsFor(String watchlistName, List<ProductItem> items) {
+    _watchlistItemsMap[watchlistName] = List<ProductItem>.from(items);
     notifyListeners();
   }
 
@@ -126,6 +152,7 @@ class WatchlistService extends ChangeNotifier {
 
   void enterEditMode() {
     _isEditing = true;
+    _selectedEditableItemKeys.clear();
     _editingWatchlistName = selectedWatchlistName;
     final items = getWatchlistItemsFor(selectedWatchlistName);
     _editableItems =
@@ -133,20 +160,43 @@ class WatchlistService extends ChangeNotifier {
             .asMap()
             .entries
             .map(
-              (e) => Tuple2<String, WatchlistItem>(
+              (e) => Tuple2<String, ProductItem>(
                 '${e.key}_${e.value.symbol}_${DateTime.now().millisecondsSinceEpoch}',
                 e.value,
               ),
             )
             .toList();
+    _editableItemOrderAtEditStart =
+        _editableItems.map((item) => item.item1).toList();
     notifyListeners();
   }
 
   void removeEditableItem(int index) {
     if (index >= 0 && index < _editableItems.length) {
+      _selectedEditableItemKeys.remove(_editableItems[index].item1);
       _editableItems.removeAt(index);
       notifyListeners();
     }
+  }
+
+  void toggleEditableItemSelection(String key) {
+    if (_selectedEditableItemKeys.contains(key)) {
+      _selectedEditableItemKeys.remove(key);
+    } else {
+      _selectedEditableItemKeys.add(key);
+    }
+    notifyListeners();
+  }
+
+  void toggleSelectAllEditableItems() {
+    if (_selectedEditableItemKeys.length == _editableItems.length) {
+      _selectedEditableItemKeys.clear();
+    } else {
+      _selectedEditableItemKeys
+        ..clear()
+        ..addAll(_editableItems.map((item) => item.item1));
+    }
+    notifyListeners();
   }
 
   void reorderEditableItem(int oldIndex, int newIndex) {
@@ -162,12 +212,17 @@ class WatchlistService extends ChangeNotifier {
     if (_editingWatchlistName != null) {
       setWatchlistItemsFor(
         _editingWatchlistName!,
-        _editableItems.map((e) => e.item2).toList(),
+        _editableItems
+            .where((item) => !_selectedEditableItemKeys.contains(item.item1))
+            .map((item) => item.item2)
+            .toList(),
       );
     }
     _isEditing = false;
     _editingWatchlistName = null;
     _editableItems = [];
+    _editableItemOrderAtEditStart = [];
+    _selectedEditableItemKeys.clear();
     notifyListeners();
   }
 
@@ -175,6 +230,8 @@ class WatchlistService extends ChangeNotifier {
     _isEditing = false;
     _editingWatchlistName = null;
     _editableItems = [];
+    _editableItemOrderAtEditStart = [];
+    _selectedEditableItemKeys.clear();
     notifyListeners();
   }
 
@@ -250,48 +307,17 @@ class WatchlistService extends ChangeNotifier {
         }
       }
 
-      final itemsByWatchlist = <String, List<WatchlistItem>>{};
-      if (responseMap != null) {
-        for (final entry in responseMap.entries) {
-          if (entry.value is! List ||
-              entry.key == 'watchlist' ||
-              entry.key == 'data') {
-            continue;
-          }
-
-          final key = entry.key.toLowerCase();
-          final watchlistName =
-              key == 'fav'
-                  ? names.cast<String?>().firstWhere(
-                    (name) =>
-                        name?.toLowerCase() == 'favourites' ||
-                        name?.toLowerCase() == 'favorites',
-                    orElse: () => null,
-                  )
-                  : names.cast<String?>().firstWhere(
-                    (name) => name?.toLowerCase() == key,
-                    orElse: () => null,
-                  );
-          if (watchlistName == null) continue;
-
-          itemsByWatchlist[watchlistName] =
-              (entry.value as List)
-                  .whereType<Map>()
-                  .map(
-                    (item) =>
-                        WatchlistItem.fromJson(Map<String, dynamic>.from(item)),
-                  )
-                  .toList();
-        }
-      }
-
       final previousSelection = selectedWatchlistName;
       _watchedLists
         ..clear()
         ..addAll(names);
-      _watchlistItemsMap
-        ..clear()
-        ..addAll(itemsByWatchlist);
+      _watchlistItemsMap.removeWhere(
+        (name, _) =>
+            !names.any(
+              (watchlistName) =>
+                  watchlistName.toLowerCase() == name.toLowerCase(),
+            ),
+      );
       _selectedTabIndex = _watchedLists.indexWhere(
         (name) => name.toLowerCase() == previousSelection.toLowerCase(),
       );
@@ -304,6 +330,51 @@ class WatchlistService extends ChangeNotifier {
       _isLoadingWatchlists = false;
       notifyListeners();
     }
+  }
+
+  Future<void> fetchWatchlistSymbols({String? watchlistName}) async {
+    final requestedName = (watchlistName ?? selectedWatchlistName).trim();
+    if (requestedName.isEmpty) {
+      _watchlistSymbolsError = 'Select a watchlist before loading symbols.';
+      notifyListeners();
+      return;
+    }
+
+    final requestId = ++_watchlistSymbolsRequestId;
+    _isLoadingWatchlistSymbols = true;
+    _watchlistSymbolsError = null;
+    notifyListeners();
+
+    try {
+      await getSymbolsFromWatchlist(requestedName);
+    } on Exception catch (error) {
+      if (requestId == _watchlistSymbolsRequestId) {
+        _watchlistSymbolsError = error.toString();
+      }
+    } finally {
+      if (requestId == _watchlistSymbolsRequestId) {
+        _isLoadingWatchlistSymbols = false;
+        notifyListeners();
+      }
+    }
+  }
+
+  Future<GetSymbolFromWatchlistResponse> getSymbolsFromWatchlist(
+    String watchlistName,
+  ) async {
+    final normalizedName = watchlistName.trim();
+    if (normalizedName.isEmpty) {
+      throw ArgumentError.value(
+        watchlistName,
+        'watchlistName',
+        'Watchlist name must not be empty.',
+      );
+    }
+
+    final response = await _repository.getSymbolsFromWatchlist(normalizedName);
+    _watchlistItemsMap[normalizedName] = response.productList;
+    notifyListeners();
+    return response;
   }
 
   Future<void> _loadWatchedListsInternal() async {
@@ -465,6 +536,9 @@ class WatchlistService extends ChangeNotifier {
     final renamedItems = _watchlistItemsMap.remove(oldName);
     if (renamedItems != null) {
       _watchlistItemsMap[trimmedName] = renamedItems;
+    }
+    if (_editingWatchlistName == oldName) {
+      _editingWatchlistName = trimmedName;
     }
     await _persistWatchedLists();
     notifyListeners();

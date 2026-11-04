@@ -38,7 +38,7 @@ class _OrderPendingPageState extends State<OrderPendingPage> {
                   width: 60,
                   height: 60,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1DB854).withOpacity(0.1),
+                    color: const Color(0xFF1DB854).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(30),
                   ),
                   child: const Icon(
@@ -129,7 +129,7 @@ class _OrderPendingPageState extends State<OrderPendingPage> {
                 width: 80,
                 height: 80,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF2C400).withOpacity(0.1),
+                  color: const Color(0xFFF2C400).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(40),
                 ),
                 child: const CircularProgressIndicator(
@@ -201,7 +201,7 @@ class _OrderPendingPageState extends State<OrderPendingPage> {
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.orange.withOpacity(0.1),
+                        color: Colors.orange.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: const Text(

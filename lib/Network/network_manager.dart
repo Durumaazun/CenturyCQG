@@ -16,8 +16,7 @@ class NetworkResponse {
 class NetworkManager {
   static const String baseUrl = 'http://localhost:5001';
 
-  final BuildContext _networkContext;
-  NetworkManager(this._networkContext);
+  NetworkManager([BuildContext? networkContext]);
   static NetworkManager of(BuildContext networkContext) {
     return NetworkManager(networkContext);
   }
@@ -26,18 +25,20 @@ class NetworkManager {
     required APINames apiName,
     required dynamic postBodyData,
     bool includeFailureResponse = false,
+    bool acceptEmptySuccessResponse = false,
+    bool sendEmptyBody = false,
   }) async {
     final apiNo = io_math.Random().nextInt(999);
     final path = _pathFor(apiName);
     final uri = Uri.parse('$baseUrl$path');
 
-    final jsonBody = jsonEncode(postBodyData);
+    final jsonBody = sendEmptyBody ? '' : jsonEncode(postBodyData);
 
     printLog(
       apiNo.toString(),
       apiName.name,
       false,
-      'URL: $uri\nBody: ${jsonEncode(_redactSensitiveValues(postBodyData))}',
+      'URL: $uri\nBody: ${sendEmptyBody ? '' : jsonEncode(_redactSensitiveValues(postBodyData))}',
     );
 
     try {
@@ -51,8 +52,11 @@ class NetworkManager {
 
       httpClient.close();
       final statusCode = response.statusCode.intToApiErrorCode();
+      final isSuccessfulResponse =
+          statusCode == APIErrorCode.success ||
+          (acceptEmptySuccessResponse && statusCode == APIErrorCode.noContent);
 
-      if (statusCode == APIErrorCode.success) {
+      if (isSuccessfulResponse) {
         if (response.body.isNotEmpty) {
           final jsonObj = json.decode(response.body);
 
@@ -80,6 +84,9 @@ class NetworkManager {
           return jsonObj;
         } else {
           printLog(apiNo.toString(), apiName.name, true, 'No Data');
+          if (acceptEmptySuccessResponse) {
+            return const <String, dynamic>{};
+          }
         }
       } else {
         printLog(
@@ -204,6 +211,10 @@ class NetworkManager {
         return '/api/product/marketmover';
       case APINames.activityFeed:
         return '/api/product/activity_feed';
+      case APINames.accountAnalysisPerformance:
+        return '/api/accounts/analysis/performance';
+      case APINames.accountAnalysisCalendar:
+        return '/api/accounts/analysis/calendar';
       case APINames.addWatchlist:
         return '/api/watchlist/add';
       case APINames.deleteWatchlist:
@@ -214,6 +225,8 @@ class NetworkManager {
         return '/api/watchlist/add_symbol';
       case APINames.getWatchlist:
         return '/api/watchlist/getwatchlist';
+      case APINames.getSymbolFromWatchlist:
+        return '/api/watchlist/getSymbolFromWatchlist';
     }
   }
 

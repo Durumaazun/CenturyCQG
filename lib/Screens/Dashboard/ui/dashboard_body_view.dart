@@ -1,8 +1,8 @@
-import 'package:century_cqg/Screens/Account/accnts_tabs/ui/stock_details_page.dart';
-import 'package:century_cqg/Screens/Dashboard/model/dashboard_models.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
+import 'package:century_cqg/Screens/Account/accnts_tabs/ui/stock_details_page.dart';
+import 'package:century_cqg/Screens/Dashboard/model/dashboard_models.dart';
 import 'package:century_cqg/Helper/nerve_styles.dart';
 import 'package:century_cqg/Helper/nerve_colors.dart';
 import 'package:century_cqg/Screens/Dashboard/service/dasboard_service.dart';
@@ -591,8 +591,8 @@ class DashboardBodyView extends StatelessWidget {
                                 decoration: BoxDecoration(
                                   color:
                                       item.type.toUpperCase() == 'SELL'
-                                          ? Colors.red.withOpacity(0.1)
-                                          : Colors.teal.withOpacity(0.1),
+                                          ? Colors.red.withValues(alpha: 0.1)
+                                          : Colors.teal.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: Text(

@@ -133,7 +133,7 @@ class ReportsSection extends StatelessWidget {
             border: Border.all(color: borderColor, width: 1),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
@@ -169,7 +169,7 @@ class ReportsSection extends StatelessWidget {
                           Icon(
                             Icons.chevron_right,
                             size: 22,
-                            color: rowTextColor.withOpacity(0.35),
+                            color: rowTextColor.withValues(alpha: 0.35),
                           ),
                         ],
                       ),

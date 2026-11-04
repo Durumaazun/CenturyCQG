@@ -9,7 +9,11 @@ class HistoryList extends StatelessWidget {
   final Color mutedColor;
   final Color textColor;
 
-  const HistoryList({required this.mutedColor, required this.textColor});
+  const HistoryList({
+    super.key,
+    required this.mutedColor,
+    required this.textColor,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -197,4 +201,3 @@ class HistoryList extends StatelessWidget {
     );
   }
 }
-

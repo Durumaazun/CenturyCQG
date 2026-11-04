@@ -112,7 +112,7 @@ class AppSettingsPage extends StatelessWidget {
                           onChanged: service.setDarkMode,
                           activeColor: NerveColors.selectedNavColor,
                           activeTrackColor: NerveColors.selectedNavColor
-                              .withOpacity(0.45),
+                              .withValues(alpha: 0.45),
                           inactiveThumbColor: const Color(0xFF8A8A8A),
                           inactiveTrackColor: const Color(0xFFD0D0D0),
                         ),
@@ -139,6 +139,7 @@ class SettingsSection extends StatelessWidget {
   final List<SectionRow>? rows;
 
   const SettingsSection({
+    super.key,
     required this.title,
     required this.titleColor,
     required this.cardColor,
@@ -175,7 +176,7 @@ class SettingsSection extends StatelessWidget {
             border: Border.all(color: borderColor, width: 1),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.06),
+                color: Colors.black.withValues(alpha: 0.06),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
@@ -213,6 +214,7 @@ class SectionRow extends StatelessWidget {
   final Color? backgroundColor;
 
   const SectionRow({
+    super.key,
     required this.title,
     required this.rowTextColor,
     this.trailing,
@@ -249,7 +251,7 @@ class SectionRow extends StatelessWidget {
             else if (showChevron)
               Icon(
                 Icons.chevron_right,
-                color: rowTextColor.withOpacity(0.5),
+                color: rowTextColor.withValues(alpha: 0.5),
                 size: 24,
               ),
           ],
@@ -258,4 +260,3 @@ class SectionRow extends StatelessWidget {
     );
   }
 }
-

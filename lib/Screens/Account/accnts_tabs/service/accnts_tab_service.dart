@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:century_cqg/Network/network_manager.dart';
+import 'package:century_cqg/Screens/Account/accnts_tabs/model/analysis_request_model.dart';
 import 'package:century_cqg/Screens/Account/model/account_model.dart';
 import 'package:century_cqg/Screens/Account/accnts_tabs/model/analysis_model.dart';
+import 'package:century_cqg/Screens/Account/accnts_tabs/service/account_analysis_repository.dart';
 import 'package:century_cqg/Screens/Dashboard/model/top_view_stocks.dart';
+import 'package:century_cqg/app_config.dart';
 
 class AccntsTabService extends ChangeNotifier {
+  final _repository = AccountAnalysisRepository();
+
   // ---------------------------------------------------------------------------
   // Overview Tab Data & Logic
   // ---------------------------------------------------------------------------
@@ -92,8 +98,147 @@ class AccntsTabService extends ChangeNotifier {
   static final DateTime firstCalendarMonth = DateTime(2020, 1, 1);
   static final DateTime lastCalendarMonth = DateTime(2030, 12, 1);
   DateTime _focusedDay = DateTime(DateTime.now().year, DateTime.now().month, 1);
+  AnalysisPerformanceData? _performanceData;
+  Map<DateTime, TradeDayStatus> _tradeDays = {};
+  bool _isPerformanceLoading = false;
+  bool _isCalendarLoading = false;
+  String? _performanceError;
+  String? _calendarError;
+  int _performanceRequestId = 0;
+  int _calendarRequestId = 0;
+
+  static const List<String> _periodKeys = [
+    'yesterday',
+    'last_week',
+    'last_month',
+    'last_quarter',
+    'last_year',
+    'custom',
+  ];
+  static const List<String> _marketImpactKeys = ['all', 'winning', 'losing'];
 
   DateTime get focusedDay => _focusedDay;
+  bool get isPerformanceLoading => _isPerformanceLoading;
+  bool get isCalendarLoading => _isCalendarLoading;
+  String? get performanceError => _performanceError;
+  String? get calendarError => _calendarError;
+  String get performancePeriodLabel {
+    final data = _performanceData;
+    return data == null ? '' : '${data.periodStart} - ${data.periodEnd}';
+  }
+
+  Future<void> loadAnalysis(BuildContext context) async {
+    await Future.wait<void>([
+      fetchPerformance(context),
+      fetchCalendar(context),
+    ]);
+  }
+
+  Future<void> fetchPerformance(
+    BuildContext context, {
+    String? customRange,
+  }) async {
+    final requestId = ++_performanceRequestId;
+    final accountId = AppConfig().accountId?.trim();
+    if (accountId == null || accountId.isEmpty) {
+      _performanceError = 'Account ID is unavailable. Please sign in again.';
+      _isPerformanceLoading = false;
+      notifyListeners();
+      return;
+    }
+
+    final period = _periodKeys[_selectedTime];
+    final normalizedCustomRange = customRange?.trim();
+    if (period == 'custom' &&
+        (normalizedCustomRange == null ||
+            !RegExp(
+              r'^\d{4}-\d{2}-\d{2}\.\.\d{4}-\d{2}-\d{2}$',
+            ).hasMatch(normalizedCustomRange))) {
+      _performanceError = 'Enter a custom range as YYYY-MM-DD..YYYY-MM-DD.';
+      _isPerformanceLoading = false;
+      notifyListeners();
+      return;
+    }
+
+    _isPerformanceLoading = true;
+    _performanceError = null;
+    notifyListeners();
+
+    final response = await _repository.fetchPerformance(
+      context,
+      request: AccountAnalysisPerformanceRequest(
+        accountId: accountId,
+        period: period,
+        marketImpact: _marketImpactKeys[_selectedMarketImpact],
+        customRange: period == 'custom' ? normalizedCustomRange : null,
+      ),
+    );
+    if (requestId != _performanceRequestId) return;
+
+    if (response is NetworkResponse) {
+      _performanceError =
+          'Unable to load account analysis (${response.statusCode}).';
+    } else if (response is! Map) {
+      _performanceError = 'The account analysis response is invalid.';
+    } else {
+      try {
+        _performanceData = AnalysisPerformanceData.fromJson(
+          Map<String, dynamic>.from(response),
+        );
+        _performanceError = null;
+      } on FormatException catch (exception) {
+        _performanceError = exception.message;
+      }
+    }
+
+    _isPerformanceLoading = false;
+    notifyListeners();
+  }
+
+  Future<void> fetchCalendar(BuildContext context) async {
+    final requestId = ++_calendarRequestId;
+    final accountId = AppConfig().accountId?.trim();
+    if (accountId == null || accountId.isEmpty) {
+      _calendarError = 'Account ID is unavailable. Please sign in again.';
+      _isCalendarLoading = false;
+      notifyListeners();
+      return;
+    }
+
+    _isCalendarLoading = true;
+    _calendarError = null;
+    notifyListeners();
+
+    final response = await _repository.fetchCalendar(
+      context,
+      request: AccountAnalysisCalendarRequest(
+        accountId: accountId,
+        year: _focusedDay.year,
+        month: _focusedDay.month,
+      ),
+    );
+    if (requestId != _calendarRequestId) return;
+
+    if (response is NetworkResponse) {
+      _calendarError =
+          'Unable to load the trades calendar (${response.statusCode}).';
+    } else if (response is! Map) {
+      _calendarError = 'The trades calendar response is invalid.';
+    } else {
+      try {
+        _tradeDays =
+            AnalysisCalendarData.fromJson(
+              Map<String, dynamic>.from(response),
+            ).tradeDays;
+        _calendarError = null;
+      } on FormatException catch (exception) {
+        _calendarError = exception.message;
+      }
+    }
+
+    _isCalendarLoading = false;
+    notifyListeners();
+  }
 
   set focusedDay(DateTime value) {
     _focusedDay = value;
@@ -122,7 +267,7 @@ class AccntsTabService extends ChangeNotifier {
     notifyListeners();
   }
 
-  int _selectedTime = 5;
+  int _selectedTime = 4;
   int get selectedTime => _selectedTime;
   void setSelectedTime(int index) {
     _selectedTime = index;
@@ -200,101 +345,23 @@ class AccntsTabService extends ChangeNotifier {
       return TradeDayStatus.future;
     }
 
-    final seed = day.year * 10000 + day.month * 100 + day.day;
-    switch (seed % 3) {
-      case 0:
-        return TradeDayStatus.win;
-      case 1:
-        return TradeDayStatus.loss;
-      default:
-        return TradeDayStatus.none;
-    }
+    return _tradeDays[DateTime(day.year, day.month, day.day)] ??
+        TradeDayStatus.none;
   }
 
   List<AnalysisMetric> getMetrics() {
-    return const [
-      AnalysisMetric(label: 'Winning Trades', value: '24'),
-      AnalysisMetric(label: 'Losing Trades', value: '11'),
-      AnalysisMetric(label: 'Win Rate', value: '68%'),
-    ];
+    return _performanceData?.metrics ?? const [];
   }
 
   List<SummaryCardData> getSummaryCards() {
-    return const [
-      SummaryCardData(
-        label: 'WINS',
-        value: '14',
-        valueColor: Color(0xFF0AA66A),
-        lightBackground: Color(0xFFEAF8F2),
-        darkBackground: Color(0xFF112B22),
-      ),
-      SummaryCardData(
-        label: 'LOSSES',
-        value: '5',
-        valueColor: Color(0xFFFF4B55),
-        lightBackground: Color(0xFFFDEEF1),
-        darkBackground: Color(0xFF321A1E),
-      ),
-      SummaryCardData(
-        label: 'NET P&L',
-        value: '+6,200',
-        valueColor: Color(0xFFC89000),
-        lightBackground: Color(0xFFFFF6DE),
-        darkBackground: Color(0xFF332A12),
-      ),
-    ];
+    return _performanceData?.summaryCards ?? const [];
   }
 
   List<StatData> getPerformanceStats() {
-    return const [
-      StatData(
-        label: 'Net Profit',
-        value: '6,200.83',
-        valueColor: Color(0xFF0AA66A),
-      ),
-      StatData(label: 'Profit Factor', value: '1.67'),
-      StatData(label: 'Max Balance Drawdown', value: '20.92%'),
-      StatData(
-        label: 'Commission',
-        value: '-13.74',
-        valueColor: Color(0xFFFF4B55),
-      ),
-      StatData(label: 'Total Trades', value: '19'),
-      StatData(label: 'Average Trade', value: '326.36'),
-      StatData(
-        label: 'Largest Winning Trade',
-        value: '6,551.00',
-        valueColor: Color(0xFF0AA66A),
-      ),
-      StatData(
-        label: 'Winning Trades',
-        value: '14',
-        valueColor: Color(0xFF0AA66A),
-      ),
-      StatData(
-        label: 'Losing Trades',
-        value: '5',
-        valueColor: Color(0xFFFF4B55),
-      ),
-      StatData(
-        label: 'Largest Losing Trade',
-        value: '-3,576.00',
-        valueColor: Color(0xFFFF4B55),
-      ),
-      StatData(label: 'Total Pips Won', value: '893.18'),
-      StatData(label: 'Avg. Pips Won per Trade', value: '47.01'),
-      StatData(label: 'Avg. Trade Duration', value: '2h 6m 45s'),
-      StatData(label: 'USD Volume Traded', value: '16m'),
-    ];
+    return _performanceData?.stats ?? const [];
   }
 
   List<PerformancePoint> getPerformanceChartData() {
-    return const [
-      PerformancePoint(day: 'Mon', winningTrades: 5, losingTrades: 5),
-      PerformancePoint(day: 'Tue', winningTrades: 7, losingTrades: 7),
-      PerformancePoint(day: 'Wed', winningTrades: 16, losingTrades: 16),
-      PerformancePoint(day: 'Thu', winningTrades: 7, losingTrades: 7),
-      PerformancePoint(day: 'Fri', winningTrades: 5, losingTrades: 5),
-    ];
+    return _performanceData?.chartData ?? const [];
   }
 }

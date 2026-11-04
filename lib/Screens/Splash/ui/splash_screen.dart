@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:century_cqg/Helper/nerve_navigation.dart';
@@ -19,6 +21,7 @@ class SplashScreenState extends State<SplashScreen>
   late Animation<double> _innerCircleScale;
   late Animation<double> _midCircleScale;
   late Animation<double> _outerCircleScale;
+  Timer? _navigationTimer;
 
   @override
   void initState() {
@@ -72,7 +75,7 @@ class SplashScreenState extends State<SplashScreen>
 
     _animationController.forward();
 
-    Future.delayed(const Duration(seconds: 3), () {
+    _navigationTimer = Timer(const Duration(seconds: 3), () {
       if (mounted) {
         Navigator.of(context).pushReplacementNamed(NerveScreensNames.login);
       }
@@ -81,6 +84,7 @@ class SplashScreenState extends State<SplashScreen>
 
   @override
   void dispose() {
+    _navigationTimer?.cancel();
     _animationController.dispose();
     super.dispose();
   }

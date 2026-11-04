@@ -438,7 +438,7 @@ class OverviewTab extends StatelessWidget {
                                   vertical: 2,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: Colors.teal.withOpacity(0.1),
+                                  color: Colors.teal.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: Text(
@@ -769,6 +769,7 @@ class MetricCard extends StatelessWidget {
   final String value;
 
   const MetricCard({
+    super.key,
     required this.isDarkMode,
     required this.label,
     required this.value,

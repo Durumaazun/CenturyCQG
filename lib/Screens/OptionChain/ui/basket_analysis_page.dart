@@ -656,7 +656,7 @@ class _PayoffGraphPainter extends CustomPainter {
     // Vertical dashed grey line at x=125 (36100 strike line)
     final dashedPaint =
         Paint()
-          ..color = Colors.grey.withOpacity(0.6)
+          ..color = Colors.grey.withValues(alpha: 0.6)
           ..strokeWidth = 1.2;
     for (double y = 40; y < 240; y += 6) {
       canvas.drawLine(Offset(125, y), Offset(125, y + 3), dashedPaint);

@@ -8,8 +8,27 @@ import 'package:century_cqg/Screens/Account/accnts_tabs/model/analysis_model.dar
 import 'package:century_cqg/Screens/Account/accnts_tabs/service/accnts_tab_service.dart';
 import 'package:century_cqg/Screens/Dashboard/service/dasboard_service.dart';
 
-class AnalysisTab extends StatelessWidget {
+class AnalysisTab extends StatefulWidget {
   const AnalysisTab({super.key});
+
+  @override
+  State<AnalysisTab> createState() => _AnalysisTabState();
+}
+
+class _AnalysisTabState extends State<AnalysisTab> {
+  bool _initialLoadStarted = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_initialLoadStarted) return;
+    _initialLoadStarted = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<AccntsTabService>().loadAnalysis(context);
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,6 +40,14 @@ class AnalysisTab extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (analysisService.isPerformanceLoading &&
+                analysisService.getSummaryCards().isEmpty)
+              const LinearProgressIndicator(),
+            if (analysisService.performanceError != null)
+              _errorMessage(
+                analysisService.performanceError!,
+                () => analysisService.fetchPerformance(context),
+              ),
             performanceChartView(isDarkMode, analysisService),
             const SizedBox(height: 12),
 
@@ -112,6 +139,7 @@ class AnalysisTab extends StatelessWidget {
                   onPressed: () {
                     service.applyDialogMonthYear();
                     Navigator.pop(dialogContext);
+                    service.fetchCalendar(context);
                   },
                   child: const Text('Apply'),
                 ),
@@ -285,7 +313,7 @@ class AnalysisTab extends StatelessWidget {
                                     bottom: 120,
                                   ),
                                   decoration: InputDecoration(
-                                    hintText: 'Enter custom range',
+                                    hintText: 'YYYY-MM-DD..YYYY-MM-DD',
                                     filled: true,
                                     fillColor: chipBackground,
                                     contentPadding: const EdgeInsets.symmetric(
@@ -322,6 +350,12 @@ class AnalysisTab extends StatelessWidget {
           );
         },
       );
+      if (context.mounted) {
+        await context.read<AccntsTabService>().fetchPerformance(
+          context,
+          customRange: customRangeController.text,
+        );
+      }
     } finally {
       customRangeFocusNode.dispose();
       customRangeController.dispose();
@@ -410,7 +444,10 @@ class AnalysisTab extends StatelessWidget {
                     isEnabled: analysisService.focusedDay.isAfter(
                       AccntsTabService.firstCalendarMonth,
                     ),
-                    onTap: () => analysisService.previousMonth(),
+                    onTap: () {
+                      analysisService.previousMonth();
+                      analysisService.fetchCalendar(context);
+                    },
                   ),
                   const SizedBox(width: 10),
                   InkWell(
@@ -449,13 +486,23 @@ class AnalysisTab extends StatelessWidget {
                     isEnabled: analysisService.focusedDay.isBefore(
                       AccntsTabService.lastCalendarMonth,
                     ),
-                    onTap: () => analysisService.nextMonth(),
+                    onTap: () {
+                      analysisService.nextMonth();
+                      analysisService.fetchCalendar(context);
+                    },
                   ),
                 ],
               ),
             ],
           ),
           const SizedBox(height: 14),
+          if (analysisService.isCalendarLoading)
+            const LinearProgressIndicator(),
+          if (analysisService.calendarError != null)
+            _errorMessage(
+              analysisService.calendarError!,
+              () => analysisService.fetchCalendar(context),
+            ),
           Row(
             children:
                 weekDays
@@ -538,7 +585,13 @@ class AnalysisTab extends StatelessWidget {
                   ),
             ),
             onPageChanged: (focusedDayParam) {
+              final previousMonth = analysisService.focusedDay.month;
+              final previousYear = analysisService.focusedDay.year;
               analysisService.setFocusedDay(focusedDayParam);
+              if (focusedDayParam.month != previousMonth ||
+                  focusedDayParam.year != previousYear) {
+                analysisService.fetchCalendar(context);
+              }
             },
           ),
           const SizedBox(height: 14),
@@ -700,7 +753,7 @@ class AnalysisTab extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '23/09/25 - 03/01/26',
+                    analysisService.performancePeriodLabel,
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w400,
@@ -1070,6 +1123,23 @@ class AnalysisTab extends StatelessWidget {
               color: item.valueColor,
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _errorMessage(String message, VoidCallback onRetry) {
+    return Padding(
+      padding: const EdgeInsets.all(12),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(color: Color(0xFFD84343)),
+            ),
+          ),
+          TextButton(onPressed: onRetry, child: const Text('Retry')),
         ],
       ),
     );

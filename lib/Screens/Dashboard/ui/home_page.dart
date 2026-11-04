@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:century_cqg/Screens/Scalper/ui/scalper_page.dart';
+import 'package:flutter/gestures.dart' show kDoubleTapTimeout;
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
@@ -6,13 +9,15 @@ import 'package:century_cqg/Helper/nerve_colors.dart';
 import 'package:century_cqg/Screens/Dashboard/service/dasboard_service.dart';
 import 'package:century_cqg/Screens/Watchlist/service/watchlist_service.dart';
 import 'package:century_cqg/Screens/Account/ui/account_page.dart';
-import 'package:century_cqg/Screens/Dashboard/ui/dashboad_bodyView.dart';
+import 'package:century_cqg/Screens/Dashboard/ui/dashboard_body_view.dart';
 import 'package:century_cqg/Screens/Dashboard/ui/dashboard_appbar.dart';
 import 'package:century_cqg/Screens/Watchlist/ui/watchlist_page.dart';
-import 'package:century_cqg/Screens/Watchlist/ui/create_watchlist_page.dart';
+import 'package:century_cqg/Screens/Watchlist/ui/watchlist_dialogs.dart';
 import 'package:century_cqg/Screens/Trade/ui/positions/trade_page.dart';
 import 'package:century_cqg/Helper/nerve_base.dart';
 import 'package:century_cqg/Helper/nerve_styles.dart';
+
+enum _WatchlistMenuAction { rename, delete }
 
 class MobileHomePage extends StatefulWidget {
   const MobileHomePage({super.key});
@@ -22,6 +27,10 @@ class MobileHomePage extends StatefulWidget {
 }
 
 class MobileHomePageState extends State<MobileHomePage> {
+  Timer? _watchlistTapTimer;
+  int? _watchlistTapCandidateIndex;
+  bool _watchlistWasSelectedAtFirstTap = false;
+
   final List<String> _tabNames = [
     'Home',
     'Watchlists',
@@ -29,6 +38,227 @@ class MobileHomePageState extends State<MobileHomePage> {
     'Trades',
     'Scalper',
   ];
+
+  bool _isFavouritesWatchlist(String name) {
+    final normalizedName = name.trim().toLowerCase();
+    return normalizedName == 'favourites' || normalizedName == 'favorites';
+  }
+
+  List<PopupMenuEntry<_WatchlistMenuAction>> _watchlistMenuItems(
+    String name,
+    int watchlistCount,
+  ) {
+    return [
+      if (!_isFavouritesWatchlist(name))
+        const PopupMenuItem(
+          value: _WatchlistMenuAction.rename,
+          child: Row(
+            children: [
+              Icon(Icons.drive_file_rename_outline, size: 20),
+              SizedBox(width: 10),
+              Text('Rename'),
+            ],
+          ),
+        ),
+      if (watchlistCount > 1)
+        const PopupMenuItem(
+          value: _WatchlistMenuAction.delete,
+          child: Row(
+            children: [
+              Icon(Icons.delete_outline, color: Color(0xFFD32F2F), size: 20),
+              SizedBox(width: 10),
+              Text('Delete', style: TextStyle(color: Color(0xFFD32F2F))),
+            ],
+          ),
+        ),
+    ];
+  }
+
+  Future<void> _showWatchlistMenuAt(int index, Offset globalPosition) async {
+    final watchlistService = context.read<WatchlistService>();
+    if (index < 0 || index >= watchlistService.watchedLists.length) {
+      return;
+    }
+
+    final screenSize = MediaQuery.sizeOf(context);
+    final menuItems = _watchlistMenuItems(
+      watchlistService.watchedLists[index],
+      watchlistService.watchedLists.length,
+    );
+    if (menuItems.isEmpty) {
+      return;
+    }
+
+    final action = await showMenu<_WatchlistMenuAction>(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        globalPosition.dx,
+        globalPosition.dy,
+        screenSize.width - globalPosition.dx,
+        screenSize.height - globalPosition.dy,
+      ),
+      items: menuItems,
+    );
+    if (action != null && mounted) {
+      await _handleWatchlistMenuAction(index, action);
+    }
+  }
+
+  void _recordWatchlistTabTap(int index) {
+    final watchlistService = context.read<WatchlistService>();
+    if (_watchlistTapCandidateIndex != index) {
+      _watchlistTapCandidateIndex = index;
+      _watchlistWasSelectedAtFirstTap =
+          watchlistService.selectedTabIndex == index;
+    }
+
+    _watchlistTapTimer?.cancel();
+    _watchlistTapTimer = Timer(kDoubleTapTimeout, () {
+      _watchlistTapCandidateIndex = null;
+      _watchlistWasSelectedAtFirstTap = false;
+    });
+  }
+
+  void _openWatchlistMenuOnDoubleTap(int index, Offset globalPosition) {
+    final wasSelectedBeforeDoubleTap =
+        _watchlistTapCandidateIndex == index && _watchlistWasSelectedAtFirstTap;
+    _watchlistTapTimer?.cancel();
+    _watchlistTapCandidateIndex = null;
+    _watchlistWasSelectedAtFirstTap = false;
+
+    if (wasSelectedBeforeDoubleTap &&
+        context.read<WatchlistService>().selectedTabIndex == index) {
+      _showWatchlistMenuAt(index, globalPosition);
+    }
+  }
+
+  Future<void> _handleWatchlistMenuAction(
+    int index,
+    _WatchlistMenuAction action,
+  ) async {
+    final watchlistService = context.read<WatchlistService>();
+    if (index < 0 || index >= watchlistService.watchedLists.length) {
+      return;
+    }
+
+    watchlistService.setSelectedTabIndex(index);
+    if (action == _WatchlistMenuAction.rename) {
+      await _renameWatchlist(watchlistService);
+    } else {
+      await _deleteWatchlist(watchlistService);
+    }
+  }
+
+  Future<void> _renameWatchlist(WatchlistService watchlistService) async {
+    final controller = TextEditingController(
+      text: watchlistService.selectedWatchlistName,
+    );
+    final newName = await showDialog<String>(
+      context: context,
+      builder:
+          (dialogContext) => AlertDialog(
+            title: const Text('Rename watchlist'),
+            content: TextField(
+              controller: controller,
+              autofocus: true,
+              style: const TextStyle(color: Colors.black),
+              cursorColor: Colors.black,
+              textInputAction: TextInputAction.done,
+              onSubmitted:
+                  (value) => Navigator.of(dialogContext).pop(value.trim()),
+              decoration: InputDecoration(
+                labelText: 'Watchlist name',
+                labelStyle: const TextStyle(color: Colors.black54),
+                floatingLabelStyle: const TextStyle(color: Colors.black),
+                enabledBorder: const OutlineInputBorder(
+                  borderSide: BorderSide(color: Colors.black54),
+                ),
+                focusedBorder: const OutlineInputBorder(
+                  borderSide: BorderSide(color: Colors.black),
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                style: TextButton.styleFrom(foregroundColor: Colors.black),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed:
+                    () =>
+                        Navigator.of(dialogContext).pop(controller.text.trim()),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFFC600),
+                  foregroundColor: Colors.black,
+                ),
+                child: const Text('Rename'),
+              ),
+            ],
+          ),
+    );
+    controller.dispose();
+    if (newName == null || !mounted) {
+      return;
+    }
+
+    final renamed = await watchlistService.renameSelectedWatchlist(
+      context,
+      newName,
+    );
+    if (!renamed && mounted) {
+      _showWatchlistError(
+        watchlistService.watchlistMutationError ??
+            'Unable to rename watchlist.',
+      );
+    }
+  }
+
+  Future<void> _deleteWatchlist(WatchlistService watchlistService) async {
+    final watchlistName = watchlistService.selectedWatchlistName;
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder:
+          (dialogContext) => AlertDialog(
+            title: Text('Delete $watchlistName?'),
+            content: const Text('This will permanently delete this watchlist.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFD32F2F),
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Delete'),
+              ),
+            ],
+          ),
+    );
+    if (shouldDelete != true || !mounted) {
+      return;
+    }
+
+    final deleted = await watchlistService.deleteSelectedWatchlist(context);
+    if (!deleted && mounted) {
+      _showWatchlistError(
+        watchlistService.watchlistMutationError ??
+            'Unable to delete watchlist.',
+      );
+    }
+  }
+
+  void _showWatchlistError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: const TextStyle(color: Colors.black)),
+        backgroundColor: const Color(0xFFFFC600),
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -39,6 +269,37 @@ class MobileHomePageState extends State<MobileHomePage> {
     dashboardService.callTopPositions(context);
     dashboardService.callActivityFeed(context);
     dashboardService.callMarketUpdates(context, category: 'trending');
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadWatchlistsAfterLogin();
+    });
+  }
+
+  Future<void> _loadWatchlistsAfterLogin() async {
+    final watchlistService = context.read<WatchlistService>();
+    await watchlistService.fetchWatchlists(context);
+    if (!mounted) {
+      return;
+    }
+    if (context.read<DashboardService>().selectedHomeTabIndex == 1) {
+      await watchlistService.fetchWatchlistSymbols();
+    }
+  }
+
+  void _selectWatchlistTab(int index) {
+    final watchlistService = context.read<WatchlistService>();
+    if (watchlistService.selectedTabIndex == index) {
+      return;
+    }
+    watchlistService.setSelectedTabIndex(index);
+    watchlistService.fetchWatchlistSymbols(
+      watchlistName: watchlistService.selectedWatchlistName,
+    );
+  }
+
+  @override
+  void dispose() {
+    _watchlistTapTimer?.cancel();
+    super.dispose();
   }
 
   Widget _buildPageContent(
@@ -124,14 +385,34 @@ class MobileHomePageState extends State<MobileHomePage> {
                           child: SingleChildScrollView(
                             scrollDirection: Axis.horizontal,
                             child: Row(
-                              children: List.generate(
-                                watchlistTabs.length,
-                                (index) => GestureDetector(
-                                  onTap: () {
-                                    context
-                                        .read<WatchlistService>()
-                                        .setSelectedTabIndex(index);
-                                  },
+                              children: List.generate(watchlistTabs.length, (
+                                index,
+                              ) {
+                                var doubleTapPosition = Offset.zero;
+                                return GestureDetector(
+                                  // A tap selects the tab; double-click, holding, or right-click opens its actions.
+                                  onTapDown:
+                                      (_) => _recordWatchlistTabTap(index),
+                                  onTapUp: (_) => _selectWatchlistTab(index),
+                                  onDoubleTapDown:
+                                      (details) =>
+                                          doubleTapPosition =
+                                              details.globalPosition,
+                                  onDoubleTap:
+                                      () => _openWatchlistMenuOnDoubleTap(
+                                        index,
+                                        doubleTapPosition,
+                                      ),
+                                  onLongPressEnd:
+                                      (details) => _showWatchlistMenuAt(
+                                        index,
+                                        details.globalPosition,
+                                      ),
+                                  onSecondaryTapUp:
+                                      (details) => _showWatchlistMenuAt(
+                                        index,
+                                        details.globalPosition,
+                                      ),
                                   child: Column(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
@@ -160,8 +441,8 @@ class MobileHomePageState extends State<MobileHomePage> {
                                         ),
                                     ],
                                   ),
-                                ),
-                              ),
+                                );
+                              }),
                             ),
                           ),
                         ),
@@ -169,19 +450,20 @@ class MobileHomePageState extends State<MobileHomePage> {
                           onPressed: () async {
                             final watchlistProvider =
                                 context.read<WatchlistService>();
-                            final createdName = await Navigator.of(
+                            final createdName = await showCreateWatchlistDialog(
                               context,
-                            ).push<String>(
-                              MaterialPageRoute(
-                                builder: (_) => const CreateWatchlistPage(),
-                              ),
+                              watchlistProvider,
                             );
 
-                            if (createdName != null) {
-                              watchlistProvider.selectWatchlistByName(
-                                createdName,
-                              );
+                            if (!context.mounted || createdName == null) {
+                              return;
                             }
+                            watchlistProvider.selectWatchlistByName(
+                              createdName,
+                            );
+                            watchlistProvider.fetchWatchlistSymbols(
+                              watchlistName: createdName,
+                            );
                           },
                           icon: Icon(
                             Icons.add,
@@ -338,8 +620,7 @@ class MobileHomePageState extends State<MobileHomePage> {
             onTap: (index) {
               context.read<DashboardService>().setSelectedHomeTabIndex(index);
               if (index == 1) {
-                //watchlist
-                context.read<WatchlistService>().fetchWatchlists(context);
+                context.read<WatchlistService>().fetchWatchlistSymbols();
               }
             },
           ),

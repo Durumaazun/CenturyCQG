@@ -621,7 +621,7 @@ class _OptionChainPageState extends State<OptionChainPage> {
         height: _rowHeight,
         color:
             isSelected
-                ? const Color(0xFFFFC600).withOpacity(0.4)
+                ? const Color(0xFFFFC600).withValues(alpha: 0.4)
                 : Colors.white,
         child: Row(
           children: [
@@ -730,7 +730,7 @@ class _OptionChainPageState extends State<OptionChainPage> {
         height: _rowHeight,
         color:
             isSelected
-                ? const Color(0xFFFFC600).withOpacity(0.4)
+                ? const Color(0xFFFFC600).withValues(alpha: 0.4)
                 : (data['highlight'] == true
                     ? const Color(0xFFFFF9C4)
                     : const Color(0xFFF9F9F9)),
@@ -772,7 +772,7 @@ class _OptionChainPageState extends State<OptionChainPage> {
         height: _rowHeight,
         color:
             isSelected
-                ? const Color(0xFFFFC600).withOpacity(0.4)
+                ? const Color(0xFFFFC600).withValues(alpha: 0.4)
                 : Colors.white,
         child: Row(
           children: [
@@ -1412,7 +1412,7 @@ class _OptionChainPageState extends State<OptionChainPage> {
       width: 36,
       height: 22,
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.withOpacity(0.25)),
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.25)),
         borderRadius: BorderRadius.circular(2),
       ),
       child: CustomPaint(painter: _MiniPayoffPainter()),
@@ -1428,7 +1428,7 @@ class _MiniPayoffPainter extends CustomPainter {
 
     final axisPaint =
         Paint()
-          ..color = Colors.grey.withOpacity(0.35)
+          ..color = Colors.grey.withValues(alpha: 0.35)
           ..strokeWidth = 1.0;
 
     canvas.drawLine(Offset(w * 0.55, 0), Offset(w * 0.55, h), axisPaint);
@@ -1436,7 +1436,7 @@ class _MiniPayoffPainter extends CustomPainter {
 
     final redAreaPaint =
         Paint()
-          ..color = const Color(0xFFEF4444).withOpacity(0.2)
+          ..color = const Color(0xFFEF4444).withValues(alpha: 0.2)
           ..style = PaintingStyle.fill;
     final redPath =
         Path()
@@ -1448,7 +1448,7 @@ class _MiniPayoffPainter extends CustomPainter {
 
     final greenAreaPaint =
         Paint()
-          ..color = const Color(0xFF1DB854).withOpacity(0.2)
+          ..color = const Color(0xFF1DB854).withValues(alpha: 0.2)
           ..style = PaintingStyle.fill;
     final greenPath =
         Path()

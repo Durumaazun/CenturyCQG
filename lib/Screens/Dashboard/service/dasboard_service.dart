@@ -208,7 +208,7 @@ class DashboardService extends ChangeNotifier {
       }
       notifyListeners();
     } catch (e) {
-      print('Get script exception : $e');
+      debugPrint('Get script exception : $e');
     }
   }
 

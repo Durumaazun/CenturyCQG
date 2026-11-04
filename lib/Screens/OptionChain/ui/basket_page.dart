@@ -392,10 +392,10 @@ class BasketPage extends StatelessWidget {
                                       isBuy
                                           ? const Color(
                                             0xFF06B6D4,
-                                          ).withOpacity(0.15)
+                                          ).withValues(alpha: 0.15)
                                           : const Color(
                                             0xFFEF4444,
-                                          ).withOpacity(0.15),
+                                          ).withValues(alpha: 0.15),
                                   borderRadius: BorderRadius.circular(3),
                                 ),
                                 child: Text(
