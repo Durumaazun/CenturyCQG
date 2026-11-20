@@ -1,59 +1,63 @@
 import 'package:flutter/material.dart';
 
-import 'package:century_cqg/Screens/Trade/Execution/model/execution_model.dart';
+import 'package:century_cqg/Screens/Trade/model/trade_api_models.dart';
+import 'package:century_cqg/Screens/Trade/service/trade_account_scoped_service.dart';
+import 'package:century_cqg/Screens/Trade/service/trade_repository.dart';
+import 'package:century_cqg/Screens/Trade/service/trade_use_cases.dart';
 
-class ExecutionService extends ChangeNotifier {
-  final List<ExecutionItem> _executions = const [
-    ExecutionItem(
-      dateLabel: 'Today',
-      symbol: 'AAPL',
-      orderId: '#54548592',
-      orderTime: '2:56 GST',
-      side: 'Buy',
-      units: '200',
-      amount: '6000',
-      profit: '172.00',
-      iconText: 'A',
-      iconColor: Color(0xFF111111),
-    ),
-    ExecutionItem(
-      dateLabel: 'Today',
-      symbol: 'TSLA',
-      orderId: '#54548592',
-      orderTime: '2:56 GST',
-      side: 'Buy',
-      units: '200',
-      amount: '6000',
-      profit: '172.00',
-      iconText: 'T',
-      iconColor: Color(0xFFE82127),
-    ),
-    ExecutionItem(
-      dateLabel: 'Yesterday',
-      symbol: 'NVDA',
-      orderId: '#54548592',
-      orderTime: '2:56 GST',
-      side: 'Buy',
-      units: '200',
-      amount: '6000',
-      profit: '172.00',
-      iconText: 'N',
-      iconColor: Color(0xFF6BAF2A),
-    ),
-    ExecutionItem(
-      dateLabel: '28 May',
-      symbol: 'AAPL',
-      orderId: '#54548592',
-      orderTime: '2:56 GST',
-      side: 'Buy',
-      units: '200',
-      amount: '6000',
-      profit: '172.00',
-      iconText: 'A',
-      iconColor: Color(0xFF111111),
-    ),
-  ];
+class ExecutionService extends TradeAccountScopedService {
+  ExecutionService({
+    TradeUseCases? useCases,
+    String? Function()? accountIdProvider,
+  }) : _useCases = useCases ?? TradeUseCases(TradeRepository()),
+       super(accountIdProvider: accountIdProvider);
 
-  List<ExecutionItem> get executions => List.unmodifiable(_executions);
+  final TradeUseCases _useCases;
+  List<TradeExecution> _executions = [];
+  bool _isLoading = false;
+  String? _error;
+
+  List<TradeExecution> get executions {
+    synchronizeAccountScope();
+    return List.unmodifiable(_executions);
+  }
+  bool get isLoading {
+    synchronizeAccountScope();
+    return _isLoading;
+  }
+
+  String? get error {
+    synchronizeAccountScope();
+    return _error;
+  }
+
+  Future<void> fetchExecutions() async {
+    final accountId = synchronizeAccountScope();
+    if (accountId == null) {
+      _error = 'A trade account ID is required.';
+      notifyListeners();
+      return;
+    }
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+    try {
+      final executions = await _useCases.fetchExecutions();
+      if (isCurrentAccount(accountId)) _executions = executions;
+    } on Exception catch (error) {
+      if (isCurrentAccount(accountId)) _error = error.toString();
+    } finally {
+      if (isCurrentAccount(accountId)) {
+        _isLoading = false;
+        notifyListeners();
+      }
+    }
+  }
+
+  @override
+  void clearAccountState() {
+    _executions = [];
+    _isLoading = false;
+    _error = null;
+  }
 }
-

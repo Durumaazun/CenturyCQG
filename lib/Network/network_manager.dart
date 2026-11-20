@@ -109,6 +109,72 @@ class NetworkManager {
     return null;
   }
 
+  Future<Object?> deleteApi({
+    required APINames apiName,
+    required dynamic deleteBodyData,
+    bool includeFailureResponse = false,
+  }) async {
+    final apiNo = io_math.Random().nextInt(999);
+    final path = _pathFor(apiName);
+    final uri = Uri.parse('$baseUrl$path');
+    final jsonBody = jsonEncode(deleteBodyData);
+
+    printLog(
+      apiNo.toString(),
+      apiName.name,
+      false,
+      'URL: $uri\nBody: ${jsonEncode(_redactSensitiveValues(deleteBodyData))}',
+    );
+
+    final httpClient = http.Client();
+    try {
+      final response = await httpClient.delete(
+        uri,
+        headers: const {'Content-Type': 'application/json'},
+        body: jsonBody,
+      );
+      final statusCode = response.statusCode.intToApiErrorCode();
+
+      if (statusCode == APIErrorCode.success) {
+        if (response.body.isEmpty) {
+          return const <String, dynamic>{};
+        }
+
+        final jsonObj = json.decode(response.body);
+        final responseResult =
+            jsonObj is Map<String, dynamic> && jsonObj['data'] != null
+                ? jsonObj['data']
+                : jsonObj;
+        printLog(
+          apiNo.toString(),
+          apiName.name,
+          true,
+          jsonEncode(_redactSensitiveValues(responseResult)),
+        );
+        return responseResult;
+      }
+
+      printLog(
+        apiNo.toString(),
+        apiName.name,
+        true,
+        _responseBodyForLog(response.body),
+      );
+      if (includeFailureResponse) {
+        return NetworkResponse(
+          statusCode: response.statusCode,
+          body: response.body,
+        );
+      }
+      return null;
+    } catch (exception) {
+      printLog(apiNo.toString(), apiName.name, true, exception.toString());
+      rethrow;
+    } finally {
+      httpClient.close();
+    }
+  }
+
   Future<Object?> getApi({
     required APINames apiName,
     Map<String, String>? queryParameters,
@@ -203,6 +269,10 @@ class NetworkManager {
         return '/api/login';
       case APINames.accountSummary:
         return '/api/accounts/account_summary';
+      case APINames.accountOverview:
+        return '/api/accounts/overview';
+      case APINames.accountAllocation:
+        return '/api/accounts/allocation';
       case APINames.watchedStocks:
         return '/watched_stocks';
       case APINames.topPositions:
@@ -211,10 +281,20 @@ class NetworkManager {
         return '/api/product/marketmover';
       case APINames.activityFeed:
         return '/api/product/activity_feed';
-      case APINames.accountAnalysisPerformance:
-        return '/api/accounts/analysis/performance';
+      case APINames.accountAnalysisPerformanceStats:
+        return '/api/accounts/analysis/performance/stats';
+      case APINames.accountAnalysisPerformanceChart:
+        return '/api/accounts/analysis/performance/chart';
       case APINames.accountAnalysisCalendar:
         return '/api/accounts/analysis/calendar';
+      case APINames.accountAnalysisCalendarDetails:
+        return '/api/accounts/analysis/calendar/details';
+      case APINames.tradePositions:
+        return '/api/trade/tradePosition';
+      case APINames.tradeSymbolDetails:
+        return '/api/trade/symboldetails';
+      case APINames.deleteTradePosition:
+        return '/api/trade/deletetradeposition';
       case APINames.addWatchlist:
         return '/api/watchlist/add';
       case APINames.deleteWatchlist:

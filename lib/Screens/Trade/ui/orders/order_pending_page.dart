@@ -1,4 +1,6 @@
 import 'package:century_cqg/Screens/Dashboard/service/dasboard_service.dart';
+import 'package:intl/intl.dart';
+import 'package:century_cqg/Screens/Trade/model/trade_api_models.dart';
 import 'package:century_cqg/Screens/Trade/service/trade_page_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -9,28 +11,10 @@ import 'package:century_cqg/Helper/nerve_styles.dart';
 import 'package:century_cqg/Screens/Dashboard/ui/home_page.dart';
 
 class OrderPendingPage extends StatelessWidget {
-  final String symbol;
-  final String units;
-  final String amount;
-  final String orderType;
-  final String gtcDate;
-  final String stopLoss;
-  final String orderId;
-  final String orderSide;
+  final TradeOrder order;
   final VoidCallback? onDone;
 
-  const OrderPendingPage({
-    super.key,
-    required this.symbol,
-    required this.units,
-    required this.amount,
-    required this.orderType,
-    required this.gtcDate,
-    required this.stopLoss,
-    required this.orderId,
-    required this.orderSide,
-    this.onDone,
-  });
+  const OrderPendingPage({super.key, required this.order, this.onDone});
 
   @override
   Widget build(BuildContext context) {
@@ -43,8 +27,9 @@ class OrderPendingPage extends StatelessWidget {
         isDarkMode ? const Color(0xFF8A918D) : const Color(0xFF8A9199);
     final cardColor =
         isDarkMode ? const Color(0xFF191F1D) : const Color(0xFFF5F7FA);
-    final isBuy = orderSide.toLowerCase() == 'buy';
+    final isBuy = order.side.toLowerCase() == 'buy';
     final sideColor = isBuy ? const Color(0xFF00C389) : const Color(0xFFDB3D52);
+    final isFilled = order.status.toLowerCase() == 'filled';
 
     return SafeArea(
       top: false,
@@ -55,222 +40,267 @@ class OrderPendingPage extends StatelessWidget {
           child: Material(
             color: sheetColor,
             child: SizedBox(
-              height: MediaQuery.of(context).size.height * 0.76,
+              height: MediaQuery.sizeOf(context).height * 0.9,
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
                 child: Column(
                   children: [
-                    Container(
-                      width: 38,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: borderColor,
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                    ),
-                    const SizedBox(height: 28),
-                    Container(
-                      width: 64,
-                      height: 64,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFF2C400),
-                        shape: BoxShape.circle,
-                      ),
-                      alignment: Alignment.center,
-                      child: const Icon(
-                        Icons.access_time_rounded,
-                        size: 34,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    Text(
-                      'Order Pending',
-                      style: NerveStyles.tradeDetailsSectionTitleStyle(
-                        titleColor,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Confirmation in progress',
-                      style: NerveStyles.tradeDetailsOrderDateStyle(mutedColor),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      orderId,
-                      style: NerveStyles.tradeDetailsOrderDateStyle(mutedColor),
-                    ),
-                    const SizedBox(height: 16),
-                    RichText(
-                      textAlign: TextAlign.center,
-                      text: TextSpan(
-                        style: NerveStyles.tradeDetailsHeaderSymbolStyle(
-                          titleColor,
-                        ),
-                        children: [
-                          const TextSpan(text: 'You have placed a '),
-                          TextSpan(
-                            text: orderSide,
-                            style: TextStyle(
-                              fontFamily: 'Inter',
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: sideColor,
+                    Expanded(
+                      child: SingleChildScrollView(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 38,
+                              height: 4,
+                              decoration: BoxDecoration(
+                                color: borderColor,
+                                borderRadius: BorderRadius.circular(999),
+                              ),
                             ),
-                          ),
-                          const TextSpan(text: ' order for'),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Container(
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: cardColor,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      margin: const EdgeInsets.symmetric(horizontal: 16),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 10,
-                      ),
-                      child: Column(
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _headerText('PRODUCT', mutedColor),
+                            const SizedBox(height: 28),
+                            Container(
+                              width: 64,
+                              height: 64,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFF2C400),
+                                shape: BoxShape.circle,
                               ),
-                              Expanded(
-                                child: _headerText(
-                                  'UNITS',
-                                  mutedColor,
-                                  center: true,
-                                ),
+                              alignment: Alignment.center,
+                              child: const Icon(
+                                Icons.access_time_rounded,
+                                size: 34,
+                                color: Colors.white,
                               ),
-                              Expanded(
-                                child: _headerText(
-                                  'AMOUNT',
-                                  mutedColor,
-                                  right: true,
-                                ),
+                            ),
+                            const SizedBox(height: 18),
+                            Text(
+                              isFilled
+                                  ? 'Order Filled'
+                                  : 'Order ${order.status}',
+                              style: NerveStyles.tradeDetailsSectionTitleStyle(
+                                titleColor,
                               ),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  symbol,
-                                  style:
-                                      NerveStyles.tradeDetailsHeaderSymbolStyle(
-                                        titleColor,
-                                      ),
-                                ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              'Confirmation in progress',
+                              style: NerveStyles.tradeDetailsOrderDateStyle(
+                                mutedColor,
                               ),
-                              Expanded(
-                                child: Text(
-                                  units,
-                                  textAlign: TextAlign.center,
-                                  style:
-                                      NerveStyles.tradeDetailsHeaderSymbolStyle(
-                                        titleColor,
-                                      ),
-                                ),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              order.orderId,
+                              style: NerveStyles.tradeDetailsOrderDateStyle(
+                                mutedColor,
                               ),
-                              Expanded(
-                                child: Text(
-                                  amount,
-                                  textAlign: TextAlign.right,
-                                  style:
-                                      NerveStyles.tradeDetailsHeaderSymbolStyle(
-                                        titleColor,
-                                      ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _detailRow('TYPE', orderType, mutedColor, titleColor),
-                    _divider(borderColor),
-                    _detailRow('GTC', gtcDate, mutedColor, titleColor),
-                    _divider(borderColor),
-                    _detailRow(
-                      'STOP LOSS',
-                      stopLoss,
-                      mutedColor,
-                      const Color(0xFFDB3D52),
-                    ),
-                    const SizedBox(height: 12),
-                    Container(
-                      width: double.infinity,
-                      margin: const EdgeInsets.symmetric(horizontal: 24),
-
-                      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-                      decoration: BoxDecoration(
-                        color:
-                            isDarkMode
-                                ? const Color(0xFF2A2A13)
-                                : const Color(0xFFFFFBEA),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: const Color(
-                            0xFFF2C400,
-                          ).withValues(alpha: 0.45),
-                        ),
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SvgPicture.asset(
-                            'lib/Resources/Images/info_img.svg',
-                            width: 22,
-                            height: 22,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: RichText(
+                            ),
+                            const SizedBox(height: 16),
+                            RichText(
+                              textAlign: TextAlign.center,
                               text: TextSpan(
-                                style: TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w400,
-                                  color: const Color(0xFF364153),
-                                ),
+                                style:
+                                    NerveStyles.tradeDetailsHeaderSymbolStyle(
+                                      titleColor,
+                                    ),
                                 children: [
-                                  const TextSpan(
-                                    text:
-                                        'You can track your order status in the ',
-                                  ),
+                                  const TextSpan(text: 'You have placed a '),
                                   TextSpan(
-                                    text: 'Orders',
+                                    text: order.side,
                                     style: TextStyle(
                                       fontFamily: 'Inter',
-                                      fontSize: 12,
+                                      fontSize: 14,
                                       fontWeight: FontWeight.w600,
-                                      height: 19.5 / 12,
-                                      letterSpacing: 0,
-                                      color: const Color(0xFF364153),
+                                      color: sideColor,
                                     ),
                                   ),
-                                  const TextSpan(text: ' tab.'),
+                                  const TextSpan(text: ' order for'),
                                 ],
                               ),
                             ),
-                          ),
-                        ],
+                            const SizedBox(height: 16),
+                            Container(
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                color: cardColor,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 10,
+                              ),
+                              child: Column(
+                                children: [
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: _headerText(
+                                          'PRODUCT',
+                                          mutedColor,
+                                        ),
+                                      ),
+                                      Expanded(
+                                        child: _headerText(
+                                          'UNITS',
+                                          mutedColor,
+                                          center: true,
+                                        ),
+                                      ),
+                                      Expanded(
+                                        child: _headerText(
+                                          'AMOUNT',
+                                          mutedColor,
+                                          right: true,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          order.symbolName,
+                                          style:
+                                              NerveStyles.tradeDetailsHeaderSymbolStyle(
+                                                titleColor,
+                                              ),
+                                        ),
+                                      ),
+                                      Expanded(
+                                        child: Text(
+                                          _formatNumber(order.quantity),
+                                          textAlign: TextAlign.center,
+                                          style:
+                                              NerveStyles.tradeDetailsHeaderSymbolStyle(
+                                                titleColor,
+                                              ),
+                                        ),
+                                      ),
+                                      Expanded(
+                                        child: Text(
+                                          '\$${_formatMoney(order.amount)}',
+                                          textAlign: TextAlign.right,
+                                          style:
+                                              NerveStyles.tradeDetailsHeaderSymbolStyle(
+                                                titleColor,
+                                              ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            _detailRow(
+                              'TYPE',
+                              order.orderType,
+                              mutedColor,
+                              titleColor,
+                            ),
+                            _divider(borderColor),
+                            _detailRow(
+                              'FILLED / REMAINING',
+                              '${_formatNumber(order.filledQuantity)} / ${_formatNumber(order.remainingQuantity)}',
+                              mutedColor,
+                              titleColor,
+                            ),
+                            _divider(borderColor),
+                            _detailRow(
+                              'STOP LOSS',
+                              order.stopLoss == null
+                                  ? '--'
+                                  : '\$${_formatMoney(order.stopLoss!)}',
+                              mutedColor,
+                              const Color(0xFFDB3D52),
+                            ),
+                            const SizedBox(height: 12),
+                            Container(
+                              width: double.infinity,
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                              ),
+                              padding: const EdgeInsets.fromLTRB(
+                                12,
+                                10,
+                                12,
+                                10,
+                              ),
+                              decoration: BoxDecoration(
+                                color:
+                                    isDarkMode
+                                        ? const Color(0xFF2A2A13)
+                                        : const Color(0xFFFFFBEA),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: const Color(
+                                    0xFFF2C400,
+                                  ).withValues(alpha: 0.45),
+                                ),
+                              ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  SvgPicture.asset(
+                                    'lib/Resources/Images/info_img.svg',
+                                    width: 22,
+                                    height: 22,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: RichText(
+                                      text: TextSpan(
+                                        style: const TextStyle(
+                                          fontFamily: 'Inter',
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w400,
+                                          color: Color(0xFF364153),
+                                        ),
+                                        children: [
+                                          const TextSpan(
+                                            text:
+                                                'You can track your order status in the ',
+                                          ),
+                                          const TextSpan(
+                                            text: 'Orders',
+                                            style: TextStyle(
+                                              fontFamily: 'Inter',
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                              height: 19.5 / 12,
+                                              letterSpacing: 0,
+                                              color: Color(0xFF364153),
+                                            ),
+                                          ),
+                                          const TextSpan(text: ' tab.'),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            Text(
+                              order.createdAt == null
+                                  ? '--'
+                                  : DateFormat(
+                                    'dd MMM yyyy • h:mm a',
+                                  ).format(order.createdAt!.toLocal()),
+                              style: NerveStyles.tradeDetailsOrderDateStyle(
+                                mutedColor,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                          ],
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 20),
-                    Text(
-                      '23 Sep 2022   •   3:26 PM GST',
-                      style: NerveStyles.tradeDetailsOrderDateStyle(mutedColor),
-                    ),
-                    const Spacer(),
                     SizedBox(
                       width: double.infinity,
                       height: 40,
@@ -378,4 +408,8 @@ class OrderPendingPage extends StatelessWidget {
       child: Container(height: 1, color: color),
     );
   }
+
+  String _formatNumber(num value) => NumberFormat('#,##0.##').format(value);
+
+  String _formatMoney(num value) => NumberFormat('#,##0.00').format(value);
 }

@@ -1,67 +1,72 @@
 import 'package:flutter/material.dart';
 
-import 'package:century_cqg/Screens/Trade/History/model/history_model.dart';
+import 'package:century_cqg/Screens/Trade/model/trade_api_models.dart';
+import 'package:century_cqg/Screens/Trade/service/trade_account_scoped_service.dart';
+import 'package:century_cqg/Screens/Trade/service/trade_repository.dart';
+import 'package:century_cqg/Screens/Trade/service/trade_use_cases.dart';
 
-class HistoryService extends ChangeNotifier {
+class HistoryService extends TradeAccountScopedService {
+  HistoryService({
+    TradeUseCases? useCases,
+    String? Function()? accountIdProvider,
+  }) : _useCases = useCases ?? TradeUseCases(TradeRepository()),
+       super(accountIdProvider: accountIdProvider);
+
+  final TradeUseCases _useCases;
   int _selectedTabIndex = 1;
+  List<TradeHistoryItem> _history = [];
+  bool _isLoading = false;
+  String? _error;
 
-  final List<HistoryItem> _history = const [
-    HistoryItem(
-      dateLabel: 'Today',
-      symbol: 'AAPL',
-      orderId: '#54548592',
-      orderTime: '12:34 GST',
-      side: 'Sell',
-      status: 'Close',
-      units: '200',
-      price: '140158.00',
-      profit: '+172.00',
-      stopLoss: '140158.00',
-      takeProfit: '172632.00',
-      iconText: 'A',
-      iconColor: Color(0xFF111111),
-    ),
-    HistoryItem(
-      dateLabel: '28 May',
-      symbol: 'TSLA',
-      orderId: '#54548592',
-      orderTime: '12:26 GST',
-      side: 'Sell',
-      status: 'Close',
-      units: '200',
-      price: '140158.00',
-      profit: '+172.00',
-      stopLoss: '140158.00',
-      takeProfit: '172632.00',
-      iconText: 'T',
-      iconColor: Color(0xFFE82127),
-    ),
-    HistoryItem(
-      dateLabel: '28 May',
-      symbol: 'NVDA',
-      orderId: '#54548592',
-      orderTime: '11:52 GST',
-      side: 'Sell',
-      status: 'Close',
-      units: '200',
-      price: '140158.00',
-      profit: '+172.00',
-      stopLoss: '140158.00',
-      takeProfit: '172632.00',
-      iconText: 'N',
-      iconColor: Color(0xFF6BAF2A),
-    ),
-  ];
-
-  List<HistoryItem> get history => List.unmodifiable(_history);
+  List<TradeHistoryItem> get history {
+    synchronizeAccountScope();
+    return List.unmodifiable(_history);
+  }
   int get selectedTabIndex => _selectedTabIndex;
+  bool get isLoading {
+    synchronizeAccountScope();
+    return _isLoading;
+  }
 
-  void setSelectedTabIndex(int index) {
-    if (_selectedTabIndex == index) {
+  String? get error {
+    synchronizeAccountScope();
+    return _error;
+  }
+
+  Future<void> fetchHistory() async {
+    final accountId = synchronizeAccountScope();
+    if (accountId == null) {
+      _error = 'A trade account ID is required.';
+      notifyListeners();
       return;
     }
-    _selectedTabIndex = index;
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+    try {
+      final history = await _useCases.fetchHistory();
+      if (isCurrentAccount(accountId)) _history = history;
+    } on Exception catch (error) {
+      if (isCurrentAccount(accountId)) _error = error.toString();
+    } finally {
+      if (isCurrentAccount(accountId)) {
+        _isLoading = false;
+        notifyListeners();
+      }
+    }
+  }
+
+  void setSelectedTabIndex(int index) {
+    final boundedIndex = index.clamp(0, 1);
+    if (_selectedTabIndex == boundedIndex) return;
+    _selectedTabIndex = boundedIndex;
     notifyListeners();
   }
-}
 
+  @override
+  void clearAccountState() {
+    _history = [];
+    _isLoading = false;
+    _error = null;
+  }
+}

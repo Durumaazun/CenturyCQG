@@ -4,11 +4,27 @@ import 'package:provider/provider.dart';
 import 'package:century_cqg/Helper/nerve_base.dart';
 import 'package:century_cqg/Helper/nerve_styles.dart';
 import 'package:century_cqg/Screens/Trade/Execution/ui/execution_page.dart';
+import 'package:century_cqg/Screens/Trade/Execution/service/execution_service.dart';
 import 'package:century_cqg/Screens/Trade/History/service/history_service.dart';
 import 'package:century_cqg/Screens/Trade/History/ui/history_page.dart';
 
-class HistoryPage extends StatelessWidget {
+class HistoryPage extends StatefulWidget {
   const HistoryPage({super.key});
+
+  @override
+  State<HistoryPage> createState() => _HistoryPageState();
+}
+
+class _HistoryPageState extends State<HistoryPage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<HistoryService>().fetchHistory();
+      context.read<ExecutionService>().fetchExecutions();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -77,7 +93,14 @@ class HistoryPage extends StatelessWidget {
     final isExecutionTab = index == 0;
     return Expanded(
       child: GestureDetector(
-        onTap: () => context.read<HistoryService>().setSelectedTabIndex(index),
+        onTap: () {
+          context.read<HistoryService>().setSelectedTabIndex(index);
+          if (isExecutionTab) {
+            context.read<ExecutionService>().fetchExecutions();
+          } else {
+            context.read<HistoryService>().fetchHistory();
+          }
+        },
         child: Container(
           alignment: Alignment.center,
           decoration: BoxDecoration(

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:century_cqg/Helper/nerve_base.dart';
 import 'package:century_cqg/Helper/nerve_styles.dart';
 import 'package:century_cqg/Screens/Trade/service/close_all_positions_service.dart';
+import 'package:century_cqg/Screens/Trade/service/trade_page_service.dart';
 
 class PositionSymbolDetailsPage extends StatelessWidget {
   final String symbol;
@@ -156,9 +157,13 @@ class PositionSymbolDetailsPage extends StatelessWidget {
                           backgroundColor: const Color(0xFFF2C400),
                           foregroundColor: const Color(0xFF1F1F1F),
                         ),
-                        child: Text(
-                          'Close All Positions (4)',
-                          style: NerveStyles.tradeDetailsCloseAllButtonStyle(),
+                        child: Consumer<TradePageService>(
+                          builder:
+                              (context, tradePageService, _) => Text(
+                                'Close All Positions (${tradePageService.positionDetails.length})',
+                                style:
+                                    NerveStyles.tradeDetailsCloseAllButtonStyle(),
+                              ),
                         ),
                       ),
                     ),
@@ -185,16 +190,94 @@ class PositionSymbolDetailsPage extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 18),
-                    ...List.generate(3, (_) {
-                      return _orderCard(
-                        cardColor: cardColor,
-                        borderColor: borderColor,
-                        dividerColor: dividerColor,
-                        titleColor: titleColor,
-                        mutedColor: mutedColor,
-                        positiveColor: positiveColor,
-                      );
-                    }),
+                    Consumer<TradePageService>(
+                      builder: (context, tradePageService, _) {
+                        final summary = tradePageService.positionSummary;
+                        final netPositions =
+                            tradePageService.netPositionDetails;
+                        if (summary == null && netPositions.isEmpty) {
+                          return const SizedBox.shrink();
+                        }
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 16, bottom: 16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (summary != null)
+                                Text(
+                                  'Market Price: \$${summary.marketPrice.toStringAsFixed(2)}  •  Position Value: \$${summary.positionValue.toStringAsFixed(2)}',
+                                  style: TextStyle(color: mutedColor),
+                                ),
+                              for (final position in netPositions)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 8),
+                                  child: Text(
+                                    '${position.side}  •  ${position.netUnit} units  •  Avg. \$${position.avgPrice.toStringAsFixed(2)}  •  P&L \$${position.netPnl.toStringAsFixed(2)}',
+                                    style: TextStyle(color: titleColor),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                    Consumer<TradePageService>(
+                      builder: (context, tradePageService, _) {
+                        if (tradePageService.isLoadingPositionDetails &&
+                            tradePageService.positionDetails.isEmpty) {
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
+                        }
+
+                        if (tradePageService.positionDetailsError != null) {
+                          return Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  tradePageService.positionDetailsError!,
+                                  style: TextStyle(color: Colors.red[700]),
+                                ),
+                              ),
+                              TextButton(
+                                onPressed:
+                                    () => tradePageService.fetchPositionDetails(
+                                      context,
+                                      symbolName: symbol,
+                                    ),
+                                child: const Text('Retry'),
+                              ),
+                            ],
+                          );
+                        }
+
+                        if (tradePageService.positionDetails.isEmpty) {
+                          return const Text('No positions found.');
+                        }
+
+                        return Column(
+                          children: [
+                            for (final position
+                                in tradePageService.positionDetails)
+                              _positionDetailCard(
+                                position.symbolName,
+                                position.side,
+                                position.netUnits,
+                                position.averageAmount,
+                                position.displayNetPnl,
+                                position.displayPrice,
+                                position.pricePercentage,
+                                cardColor,
+                                borderColor,
+                                dividerColor,
+                                titleColor,
+                                mutedColor,
+                                positiveColor,
+                              ),
+                          ],
+                        );
+                      },
+                    ),
                   ],
                 ),
               ),
@@ -205,14 +288,21 @@ class PositionSymbolDetailsPage extends StatelessWidget {
     );
   }
 
-  Widget _orderCard({
-    required Color cardColor,
-    required Color borderColor,
-    required Color dividerColor,
-    required Color titleColor,
-    required Color mutedColor,
-    required Color positiveColor,
-  }) {
+  Widget _positionDetailCard(
+    String positionSymbol,
+    String side,
+    String units,
+    String averagePrice,
+    String pnl,
+    String price,
+    double pricePercentage,
+    Color cardColor,
+    Color borderColor,
+    Color dividerColor,
+    Color titleColor,
+    Color mutedColor,
+    Color positiveColor,
+  ) {
     return Container(
       padding: const EdgeInsets.only(bottom: 8, right: 16, top: 8),
       decoration: NerveStyles.tradeDetailsCardDecoration(
@@ -224,42 +314,23 @@ class PositionSymbolDetailsPage extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text(
-                '#54548592',
-                style: NerveStyles.tradeDetailsOrderIdStyle(mutedColor),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                '+\$130.00',
-                style: NerveStyles.tradeDetailsOrderPnlStyle(positiveColor),
-              ),
-              const Spacer(),
-              Text(
-                '23 May 2026',
-                style: NerveStyles.tradeDetailsOrderDateStyle(mutedColor),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: NerveStyles.tradeDetailsStatusBadgeDecoration(),
+              Expanded(
                 child: Text(
-                  'In Progress',
-                  style: NerveStyles.tradeDetailsStatusBadgeStyle(),
+                  positionSymbol,
+                  style: NerveStyles.tradeDetailsOrderIdStyle(titleColor),
                 ),
               ),
-              const SizedBox(width: 8),
-              Container(
-                width: 20,
-                height: 20,
-                decoration: NerveStyles.tradeDetailsCloseIconDecoration,
-                alignment: Alignment.center,
-                child: const Icon(
-                  Icons.close,
-                  size: 12,
-                  color: Color(0xFFDB3D52),
+              Text(
+                price,
+                style: NerveStyles.tradeDetailsOrderDateStyle(titleColor),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                '${pricePercentage >= 0 ? '+' : ''}${pricePercentage.toStringAsFixed(2)}%',
+                style: NerveStyles.tradeDetailsOrderPnlStyle(
+                  pricePercentage >= 0
+                      ? positiveColor
+                      : const Color(0xFFDB3D52),
                 ),
               ),
             ],
@@ -268,15 +339,12 @@ class PositionSymbolDetailsPage extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: _orderMetric('B/S', 'Buy', mutedColor, positiveColor),
-              ),
-              Expanded(
-                child: _orderMetric('Type', 'Limit', mutedColor, titleColor),
+                child: _orderMetric('B/S', side, mutedColor, positiveColor),
               ),
               Expanded(
                 child: _orderMetric(
                   'Units',
-                  '200',
+                  units,
                   mutedColor,
                   titleColor,
                   textAlign: TextAlign.end,
@@ -284,10 +352,19 @@ class PositionSymbolDetailsPage extends StatelessWidget {
               ),
               Expanded(
                 child: _orderMetric(
-                  'Price',
-                  '164.68',
+                  'Avg. Price',
+                  averagePrice,
                   mutedColor,
                   titleColor,
+                  textAlign: TextAlign.end,
+                ),
+              ),
+              Expanded(
+                child: _orderMetric(
+                  'Net P&L',
+                  pnl,
+                  mutedColor,
+                  positiveColor,
                   textAlign: TextAlign.end,
                 ),
               ),
@@ -598,4 +675,3 @@ class _CloseAllPositionsSheet extends StatelessWidget {
     );
   }
 }
-

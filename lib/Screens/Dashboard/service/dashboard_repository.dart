@@ -11,11 +11,13 @@ class DashboardRepository {
       );
 
   // Watched Stocks
-  Future<Object?> fetchWatchedStocks(BuildContext context) =>
-      NetworkManager(context).getApi(apiName: APINames.watchedStocks);
+  Future<Object?> fetchWatchedStocks(BuildContext context) => NetworkManager(
+    context,
+  ).getApi(apiName: APINames.watchedStocks, includeFailureResponse: true);
 
-  Future<Object?> fetchTopPositions(BuildContext context) =>
-      NetworkManager(context).getApi(apiName: APINames.topPositions);
+  Future<Object?> fetchTopPositions(BuildContext context) => NetworkManager(
+    context,
+  ).getApi(apiName: APINames.topPositions, queryParameters: {'isFrom': 'Home'});
 
   // Market Updates
   Future<Object?> fetchMarketUpdates(

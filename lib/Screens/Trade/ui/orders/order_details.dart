@@ -1,460 +1,316 @@
-import 'package:century_cqg/Screens/Trade/model/order_item_model.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
 import 'package:century_cqg/Helper/nerve_base.dart';
 import 'package:century_cqg/Helper/nerve_styles.dart';
-import 'package:century_cqg/Screens/Trade/ui/orders/modify_order.dart';
-import 'package:century_cqg/Screens/Trade/ui/orders/order_cancel_page.dart';
+import 'package:century_cqg/Screens/Trade/History/service/history_service.dart';
+import 'package:century_cqg/Screens/Trade/model/trade_api_models.dart';
+import 'package:century_cqg/Screens/Trade/service/trade_orders_service.dart';
 
 class OrderDetailsPage extends StatelessWidget {
   const OrderDetailsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final service = context.watch<TradeOrdersService>();
     final isDarkMode = NerveBase().isDarkMode;
-
-    final bgColor = isDarkMode ? const Color(0xFF0D110F) : Colors.white;
-    final borderColor =
-        isDarkMode ? const Color(0xFF2A302D) : const Color(0xFFE8ECEA);
     final titleColor = isDarkMode ? Colors.white : const Color(0xFF2A2A2A);
     final mutedColor =
         isDarkMode ? const Color(0xFF8F9793) : const Color(0xFF7A817D);
-    final positiveColor = const Color(0xFF00C389);
+    final borderColor =
+        isDarkMode ? const Color(0xFF2A302D) : const Color(0xFFE8ECEA);
 
-    const orders = <OrderItem>[
-      OrderItem(
-        symbol: 'AAPL',
-        iconText: 'A',
-        iconBg: Color(0xFF111111),
-        type: 'Limit',
-        tag1: '',
-        tag2: '',
-      ),
-      OrderItem(
-        symbol: 'TSLA',
-        iconText: 'T',
-        iconBg: Color(0xFFE82127),
-        type: 'Limit',
-        tag1: '',
-        tag2: '',
-      ),
-      OrderItem(
-        symbol: 'TSLA 4500',
-        iconText: 'T',
-        iconBg: Color(0xFFE82127),
-        type: 'Limit',
-        tag1: 'Call',
-        tag2: '30 Jun',
-      ),
-      OrderItem(
-        symbol: 'TSLA 4500',
-        iconText: 'N',
-        iconBg: Color(0xFF6BAF2A),
-        type: 'Limit',
-        tag1: 'Put',
-        tag2: '30 Jun',
-      ),
-    ];
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+          child: Row(
+            children: [
+              Text(
+                'Orders',
+                style: NerveStyles.tradeDetailsSectionTitleStyle(titleColor),
+              ),
+              const Spacer(),
+              IconButton(
+                tooltip: 'Refresh orders',
+                onPressed: service.isLoading ? null : service.fetchOrders,
+                icon: Icon(Icons.refresh, size: 20, color: mutedColor),
+              ),
+            ],
+          ),
+        ),
+        if (service.isLoading && service.orders.isEmpty)
+          const Expanded(child: Center(child: CircularProgressIndicator()))
+        else if (service.error != null && service.orders.isEmpty)
+          Expanded(
+            child: _messageState(
+              service.error!,
+              actionLabel: 'Retry',
+              onAction: service.fetchOrders,
+            ),
+          )
+        else if (service.orders.isEmpty)
+          const Expanded(child: Center(child: Text('No orders found.')))
+        else
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: service.fetchOrders,
+              child: ListView.separated(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                itemCount: service.orders.length,
+                separatorBuilder: (_, __) => Divider(color: borderColor),
+                itemBuilder: (context, index) {
+                  final order = service.orders[index];
+                  return _orderCard(
+                    context,
+                    order,
+                    service,
+                    titleColor,
+                    mutedColor,
+                    isDarkMode,
+                  );
+                },
+              ),
+            ),
+          ),
+      ],
+    );
+  }
 
-    return Container(
-      color: bgColor,
+  Widget _orderCard(
+    BuildContext context,
+    TradeOrder order,
+    TradeOrdersService service,
+    Color titleColor,
+    Color mutedColor,
+    bool isDarkMode,
+  ) {
+    final isBuy = order.side.toLowerCase() == 'buy';
+    final sideColor = isBuy ? const Color(0xFF00C389) : const Color(0xFFE53935);
+    final canCancel =
+        (order.status.toLowerCase() == 'pending' ||
+            order.status.toLowerCase() == 'partial') &&
+        order.remainingQuantity > 0;
+    final date = order.createdAt?.toLocal();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            child: Row(
-              children: [
-                Text(
-                  'Orders',
-                  style: NerveStyles.tradeDetailsSectionTitleStyle(titleColor),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  order.orderId,
+                  style: NerveStyles.tradeDetailsOrderDateStyle(mutedColor),
                 ),
-                const Spacer(),
-                Icon(Icons.sort, size: 18, color: mutedColor),
-                const SizedBox(width: 10),
-                Icon(Icons.filter_alt_outlined, size: 18, color: mutedColor),
-              ],
-            ),
+              ),
+              _statusBadge(order.status, isDarkMode),
+              if (canCancel)
+                IconButton(
+                  tooltip: 'Cancel order',
+                  onPressed:
+                      service.isCanceling(order.orderId)
+                          ? null
+                          : () => _confirmCancel(context, order, service),
+                  icon:
+                      service.isCanceling(order.orderId)
+                          ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                          : Icon(Icons.close, size: 18, color: mutedColor),
+                ),
+            ],
           ),
-          Expanded(
-            child: ListView.builder(
-              itemCount: orders.length,
-              itemBuilder: (context, index) {
-                final order = orders[index];
-                return Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const ModifyOrderPage(),
-                        ),
-                      );
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Text(
-                                '#54548592',
-                                style: NerveStyles.tradeDetailsOrderDateStyle(
-                                  mutedColor,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFFFF8E1),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Text(
-                                  'In Progress',
-                                  style:
-                                      NerveStyles.tradeDetailsStatusBadgeStyle(),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.access_time_rounded,
-                                    size: 14,
-                                    color: mutedColor,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '2:56 GST',
-                                    style:
-                                        NerveStyles.tradeDetailsOrderDateStyle(
-                                          mutedColor,
-                                        ),
-                                  ),
-                                ],
-                              ),
-                              const Spacer(),
-                              InkWell(
-                                onTap: () {
-                                  showCancelOrderBottomSheet(
-                                    context,
-                                    isDarkMode,
-                                  );
-                                },
-                                borderRadius: BorderRadius.circular(10),
-                                child: Container(
-                                  width: 16,
-                                  height: 16,
-                                  decoration: const BoxDecoration(
-                                    color: Color(0xFFFFF0F2),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  alignment: Alignment.center,
-                                  child: const Icon(
-                                    Icons.close,
-                                    size: 10,
-                                    color: Color(0xFFFF8D99),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Container(
-                                width: 16,
-                                height: 16,
-                                decoration: BoxDecoration(
-                                  color: order.iconBg,
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                alignment: Alignment.center,
-                                child: Text(
-                                  order.iconText,
-                                  style: const TextStyle(
-                                    fontFamily: 'Inter',
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                order.symbol,
-                                style: NerveStyles.tradePositionSymbolStyle(
-                                  titleColor,
-                                ),
-                              ),
-                              if (order.tag1.isNotEmpty) ...[
-                                const SizedBox(width: 8),
-                                pillWidget(
-                                  order.tag1,
-                                  const Color(0xFFD7ECFF),
-                                  const Color(0xFF3E6DA9),
-                                ),
-                              ],
-                              if (order.tag2.isNotEmpty) ...[
-                                const SizedBox(width: 6),
-                                pillWidget(
-                                  order.tag2,
-                                  const Color(0xFFFFDDE2),
-                                  const Color(0xFFB04D5A),
-                                ),
-                              ],
-                              const Spacer(),
-                              Text(
-                                '+3.76%',
-                                style: NerveStyles.tradeDetailsOrderPnlStyle(
-                                  positiveColor,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                '\$577.87',
-                                style: NerveStyles.tradePositionSymbolStyle(
-                                  titleColor,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: metricWidget(
-                                  'B/S',
-                                  'Buy ',
-                                  mutedColor,
-                                  positiveColor,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: metricWidget(
-                                  'Units',
-                                  '200',
-                                  mutedColor,
-                                  titleColor,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: metricWidget(
-                                  'Price',
-                                  '164.68',
-                                  mutedColor,
-                                  titleColor,
-                                  textAlign: TextAlign.end,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Container(height: 1, color: borderColor),
-                        ],
-                      ),
-                    ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Container(
+                width: 20,
+                height: 20,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF8E8E93),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  order.symbolName.isEmpty
+                      ? ''
+                      : order.symbolName[0].toUpperCase(),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
                   ),
-                );
-              },
-            ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  order.symbolName,
+                  style: NerveStyles.tradePositionSymbolStyle(titleColor),
+                ),
+              ),
+              Text(
+                date == null ? '--' : DateFormat('dd MMM HH:mm').format(date),
+                style: NerveStyles.tradeDetailsOrderDateStyle(mutedColor),
+              ),
+            ],
           ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: _metric(
+                  'B/S · TYPE',
+                  '${order.side} · ${order.orderType}',
+                  mutedColor,
+                  sideColor,
+                ),
+              ),
+              Expanded(
+                child: _metric(
+                  'QUANTITY · FILLED',
+                  '${_number(order.quantity)} · ${_number(order.filledQuantity)}',
+                  mutedColor,
+                  titleColor,
+                ),
+              ),
+              Expanded(
+                child: _metric(
+                  'AMOUNT',
+                  '\$${NumberFormat('#,##0.00').format(order.amount)}',
+                  mutedColor,
+                  titleColor,
+                  alignEnd: true,
+                ),
+              ),
+            ],
+          ),
+          if (service.cancelError != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                service.cancelError!,
+                style: const TextStyle(color: Colors.red),
+              ),
+            ),
         ],
       ),
     );
   }
 
-  Widget metricWidget(
+  Widget _statusBadge(String status, bool isDarkMode) {
+    final normalizedStatus = status.toLowerCase();
+    final color =
+        normalizedStatus == 'filled'
+            ? const Color(0xFF00A879)
+            : normalizedStatus == 'canceled' || normalizedStatus == 'expired'
+            ? const Color(0xFFE53935)
+            : const Color(0xFFB38D00);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: isDarkMode ? 0.18 : 0.1),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(
+        status,
+        style: TextStyle(
+          color: color,
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  Widget _metric(
     String label,
     String value,
     Color labelColor,
     Color valueColor, {
-    TextAlign textAlign = TextAlign.start,
+    bool alignEnd = false,
   }) {
     return Column(
       crossAxisAlignment:
-          textAlign == TextAlign.end
-              ? CrossAxisAlignment.end
-              : CrossAxisAlignment.start,
+          alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          textAlign: textAlign,
           style: NerveStyles.tradePositionMetricLabelStyle(labelColor),
         ),
         const SizedBox(height: 6),
         Text(
           value,
-          textAlign: textAlign,
           style: NerveStyles.tradeDetailsOrderBuyValueStyle(valueColor),
         ),
       ],
     );
   }
 
-  Widget pillWidget(String text, Color bg, Color fg) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(8),
+  Widget _messageState(
+    String message, {
+    required String actionLabel,
+    required VoidCallback onAction,
+  }) => Center(
+    child: Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(message, textAlign: TextAlign.center),
+          TextButton(onPressed: onAction, child: Text(actionLabel)),
+        ],
       ),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontFamily: 'Inter',
-          fontSize: 10,
-          fontWeight: FontWeight.w500,
-          color: fg,
-        ),
-      ),
-    );
-  }
+    ),
+  );
 
-  void showCancelOrderBottomSheet(BuildContext context, bool isDarkMode) {
-    showModalBottomSheet<void>(
+  Future<void> _confirmCancel(
+    BuildContext context,
+    TradeOrder order,
+    TradeOrdersService service,
+  ) async {
+    final confirmed = await showDialog<bool>(
       context: context,
-      backgroundColor: Colors.transparent,
-      builder: (bottomSheetContext) {
-        final sheetColor = isDarkMode ? const Color(0xFF1E2120) : Colors.white;
-        final titleColor = isDarkMode ? Colors.white : const Color(0xFF3B3F44);
-        final bodyColor =
-            isDarkMode ? const Color(0xFFB2B8B4) : const Color(0xFF4D545A);
-        final backBorderColor =
-            isDarkMode ? const Color(0xFF69706C) : const Color(0xFF9FA6AC);
-
-        return SafeArea(
-          top: false,
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 20),
-            decoration: BoxDecoration(
-              color: sheetColor,
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(18),
+      builder:
+          (dialogContext) => AlertDialog(
+            title: const Text('Cancel order?'),
+            content: Text('Cancel order ${order.orderId}?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('Keep order'),
               ),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 34,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color:
-                          isDarkMode
-                              ? const Color(0xFF5A5F5C)
-                              : const Color(0xFF55585B),
-                      borderRadius: BorderRadius.circular(3),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 18),
-                Text(
-                  'Cancel Order',
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: titleColor,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Are you sure you want to cancel this order?',
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 16,
-                    fontWeight: FontWeight.w400,
-                    color: bodyColor,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () {
-                          Navigator.of(bottomSheetContext).pop();
-                        },
-                        style: OutlinedButton.styleFrom(
-                          minimumSize: const Size.fromHeight(46),
-                          side: BorderSide(color: backBorderColor),
-                          foregroundColor: bodyColor,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        child: const Text(
-                          'Back',
-                          style: TextStyle(
-                            fontFamily: 'Inter',
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.of(bottomSheetContext).pop();
-                          showModalBottomSheet<void>(
-                            context: context,
-                            isScrollControlled: true,
-                            backgroundColor: Colors.transparent,
-                            builder: (_) {
-                              return const OrderCancelPage(
-                                symbol: 'AAPL',
-                                units: '22',
-                                amount: '\$164.68',
-                                orderType: 'Time Trigger',
-                                gtcDate: '07/06/2026',
-                                stopLoss: '\$163.3',
-                                transactionId: 'UT#6406356',
-                                orderId: '#84060356',
-                                orderSide: 'Sell',
-                              );
-                            },
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          minimumSize: const Size.fromHeight(46),
-                          backgroundColor: const Color(0xFFF2C400),
-                          foregroundColor: const Color(0xFF1F1F1F),
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        child: const Text(
-                          'Yes, Cancel',
-                          style: TextStyle(
-                            fontFamily: 'Inter',
-                            fontSize: 16,
-                            fontWeight: FontWeight.w400,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: const Text('Cancel order'),
+              ),
+            ],
           ),
-        );
-      },
     );
+    if (confirmed != true || !context.mounted) return;
+
+    final canceled = await service.cancelOrder(order.orderId);
+    if (!context.mounted) return;
+    if (canceled) {
+      await context.read<HistoryService>().fetchHistory();
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Order canceled.')));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(service.cancelError ?? 'Unable to cancel order.'),
+        ),
+      );
+    }
   }
+
+  String _number(num value) => NumberFormat('#,##0.##').format(value);
 }

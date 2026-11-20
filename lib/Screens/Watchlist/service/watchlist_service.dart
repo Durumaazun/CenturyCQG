@@ -16,8 +16,10 @@ class WatchlistService extends ChangeNotifier {
   Future<void>? _loadFuture;
 
   bool _isEditing = false;
+  bool _isApplyingChanges = false;
   bool _isRenamingInline = false;
   String? _editingWatchlistName;
+  String? _editingWatchlistNameDraft;
   List<Tuple2<String, ProductItem>> _editableItems = [];
   List<String> _editableItemOrderAtEditStart = [];
   final Set<String> _selectedEditableItemKeys = {};
@@ -45,8 +47,10 @@ class WatchlistService extends ChangeNotifier {
   }
 
   bool get isEditing => _isEditing;
+  bool get isApplyingChanges => _isApplyingChanges;
   bool get isRenamingInline => _isRenamingInline;
   String? get editingWatchlistName => _editingWatchlistName;
+  String? get editingWatchlistNameDraft => _editingWatchlistNameDraft;
   List<Tuple2<String, ProductItem>> get editableItems =>
       List.unmodifiable(_editableItems);
   bool get hasEditableItemsReordered {
@@ -154,6 +158,7 @@ class WatchlistService extends ChangeNotifier {
     _isEditing = true;
     _selectedEditableItemKeys.clear();
     _editingWatchlistName = selectedWatchlistName;
+    _editingWatchlistNameDraft = selectedWatchlistName;
     final items = getWatchlistItemsFor(selectedWatchlistName);
     _editableItems =
         items
@@ -168,6 +173,18 @@ class WatchlistService extends ChangeNotifier {
             .toList();
     _editableItemOrderAtEditStart =
         _editableItems.map((item) => item.item1).toList();
+    notifyListeners();
+  }
+
+  void setApplyingChanges(bool isApplying) {
+    if (_isApplyingChanges == isApplying) return;
+    _isApplyingChanges = isApplying;
+    notifyListeners();
+  }
+
+  void setEditingWatchlistNameDraft(String name) {
+    if (_editingWatchlistNameDraft == name) return;
+    _editingWatchlistNameDraft = name;
     notifyListeners();
   }
 
@@ -220,6 +237,7 @@ class WatchlistService extends ChangeNotifier {
     }
     _isEditing = false;
     _editingWatchlistName = null;
+    _editingWatchlistNameDraft = null;
     _editableItems = [];
     _editableItemOrderAtEditStart = [];
     _selectedEditableItemKeys.clear();
@@ -229,6 +247,7 @@ class WatchlistService extends ChangeNotifier {
   void cancelEditMode() {
     _isEditing = false;
     _editingWatchlistName = null;
+    _editingWatchlistNameDraft = null;
     _editableItems = [];
     _editableItemOrderAtEditStart = [];
     _selectedEditableItemKeys.clear();
@@ -539,6 +558,7 @@ class WatchlistService extends ChangeNotifier {
     }
     if (_editingWatchlistName == oldName) {
       _editingWatchlistName = trimmedName;
+      _editingWatchlistNameDraft = trimmedName;
     }
     await _persistWatchedLists();
     notifyListeners();

@@ -11,12 +11,12 @@ class AnalysisMetric {
 }
 
 class PerformancePoint {
-  final String day;
+  final String label;
   final double winningTrades;
   final double losingTrades;
 
   const PerformancePoint({
-    required this.day,
+    required this.label,
     required this.winningTrades,
     required this.losingTrades,
   });
@@ -30,14 +30,13 @@ class StatData {
   const StatData({required this.label, required this.value, this.valueColor});
 }
 
-class AnalysisPerformanceData {
-  const AnalysisPerformanceData({
+class PerformanceStatsResponse {
+  const PerformanceStatsResponse({
     required this.periodStart,
     required this.periodEnd,
     required this.metrics,
     required this.summaryCards,
     required this.stats,
-    required this.chartData,
   });
 
   final String periodStart;
@@ -45,19 +44,17 @@ class AnalysisPerformanceData {
   final List<AnalysisMetric> metrics;
   final List<SummaryCardData> summaryCards;
   final List<StatData> stats;
-  final List<PerformancePoint> chartData;
-
-  factory AnalysisPerformanceData.fromJson(Map<String, dynamic> json) {
-    return AnalysisPerformanceData(
+  factory PerformanceStatsResponse.fromJson(Map<String, dynamic> json) {
+    return PerformanceStatsResponse(
       periodStart: _requiredString(json, 'period_start'),
       periodEnd: _requiredString(json, 'period_end'),
-      metrics: _parseList(json, 'metrics', (item) {
+      metrics: _parseOptionalList(json, 'metrics', (item) {
         return AnalysisMetric(
           label: _requiredString(item, 'label'),
           value: _requiredString(item, 'value'),
         );
       }),
-      summaryCards: _parseList(json, 'summary_cards', (item) {
+      summaryCards: _parseOptionalList(json, 'summary_cards', (item) {
         final tone = _requiredString(item, 'tone');
         final colors = _summaryColors(tone);
         return SummaryCardData(
@@ -68,16 +65,30 @@ class AnalysisPerformanceData {
           darkBackground: colors.dark,
         );
       }),
-      stats: _parseList(json, 'stats', (item) {
+      stats: _parseOptionalList(json, 'stats', (item) {
         return StatData(
           label: _requiredString(item, 'label'),
           value: _requiredString(item, 'value'),
           valueColor: _toneColor(_requiredString(item, 'tone')),
         );
       }),
+    );
+  }
+}
+
+class PerformanceChartResponse {
+  const PerformanceChartResponse({required this.chartData});
+
+  final List<PerformancePoint> chartData;
+
+  factory PerformanceChartResponse.fromJson(Map<String, dynamic> json) {
+    return PerformanceChartResponse(
       chartData: _parseList(json, 'chart_data', (item) {
         return PerformancePoint(
-          day: _requiredString(item, 'day'),
+          label: _requiredString(
+            item,
+            item.containsKey('label') ? 'label' : 'day',
+          ),
           winningTrades: _requiredDouble(item, 'winning_trades'),
           losingTrades: _requiredDouble(item, 'losing_trades'),
         );
@@ -140,6 +151,15 @@ List<T> _parseList<T>(
     }
     return parseItem(Map<String, dynamic>.from(rawItem));
   }).toList();
+}
+
+List<T> _parseOptionalList<T>(
+  Map<String, dynamic> json,
+  String key,
+  T Function(Map<String, dynamic>) parseItem,
+) {
+  if (!json.containsKey(key)) return const [];
+  return _parseList(json, key, parseItem);
 }
 
 String _requiredString(Map<String, dynamic> json, String key) {

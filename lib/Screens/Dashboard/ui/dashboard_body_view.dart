@@ -24,7 +24,7 @@ class DashboardBodyView extends StatelessWidget {
             accountSumView(isDarkMode, proValue),
             SizedBox(height: 8),
 
-            watchedListView(isDarkMode, proValue),
+            watchedListView(context, isDarkMode, proValue),
             SizedBox(height: 8),
 
             topPositionView(isDarkMode, proValue),
@@ -147,8 +147,63 @@ class DashboardBodyView extends StatelessWidget {
     );
   }
 
-  Widget watchedListView(bool isDarkMode, DashboardService proValue) {
+  Widget watchedListView(
+    BuildContext context,
+    bool isDarkMode,
+    DashboardService proValue,
+  ) {
     final watchedStocks = proValue.watchedStocks;
+    late final Widget watchedStocksContent;
+
+    if (proValue.isWatchedStocksLoading && watchedStocks.isEmpty) {
+      watchedStocksContent = const Center(child: CircularProgressIndicator());
+    } else if (proValue.watchedStocksError != null && watchedStocks.isEmpty) {
+      watchedStocksContent = Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              proValue.watchedStocksError!,
+              style: TextStyle(
+                color: isDarkMode ? Colors.white70 : Colors.black54,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            TextButton(
+              onPressed: () => proValue.callWatchedStocks(context),
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    } else if (watchedStocks.isEmpty) {
+      watchedStocksContent = Center(
+        child: Text(
+          'No recently watched stocks.',
+          style: TextStyle(color: isDarkMode ? Colors.white70 : Colors.black54),
+        ),
+      );
+    } else {
+      watchedStocksContent = ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: watchedStocks.length,
+        separatorBuilder: (context, index) => const SizedBox(width: 16),
+        itemBuilder: (context, index) {
+          final stock = watchedStocks[index];
+          return GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => StockDetailsPage.fromStock(stock),
+                ),
+              );
+            },
+            child: stockCard(stock: stock, isDarkMode: isDarkMode),
+          );
+        },
+      );
+    }
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -176,28 +231,7 @@ class DashboardBodyView extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 6),
-          SizedBox(
-            height: 171,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: watchedStocks.length,
-              separatorBuilder: (context, index) => const SizedBox(width: 16),
-              itemBuilder: (context, index) {
-                final stock = watchedStocks[index];
-                return GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => StockDetailsPage.fromStock(stock),
-                      ),
-                    );
-                  },
-                  child: stockCard(stock: stock, isDarkMode: isDarkMode),
-                );
-              },
-            ),
-          ),
+          SizedBox(height: 171, child: watchedStocksContent),
         ],
       ),
     );

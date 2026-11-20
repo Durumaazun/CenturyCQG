@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:century_cqg/Helper/nerve_base.dart';
@@ -6,6 +8,7 @@ import 'package:century_cqg/Helper/nerve_styles.dart';
 import 'package:century_cqg/Screens/Trade/Holdings/ui/holding_page.dart';
 import 'package:century_cqg/Screens/Trade/History/ui/history_main_page.dart';
 import 'package:century_cqg/Screens/Trade/service/trade_page_service.dart';
+import 'package:century_cqg/Screens/Trade/service/trade_orders_service.dart';
 import 'package:century_cqg/Screens/Trade/ui/positions/position_symbol_details.dart';
 import 'package:century_cqg/Screens/Trade/ui/orders/order_details.dart';
 import 'package:century_cqg/Screens/Trade/service/trade_service.dart';
@@ -24,6 +27,19 @@ class _TradePageState extends State<TradePage> {
   bool _didInitTabIndex = false;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<TradePageService>().fetchPositions(context);
+        if (widget.initialTabIndex == 1) {
+          context.read<TradeOrdersService>().fetchOrders();
+        }
+      }
+    });
+  }
+
+  @override
   void didUpdateWidget(TradePage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.initialTabIndex != widget.initialTabIndex) {
@@ -32,6 +48,11 @@ class _TradePageState extends State<TradePage> {
         context.read<TradePageService>().setSelectedTabIndex(
           widget.initialTabIndex,
         );
+        if (widget.initialTabIndex == 0) {
+          context.read<TradePageService>().fetchPositions(context);
+        } else if (widget.initialTabIndex == 1) {
+          context.read<TradeOrdersService>().fetchOrders();
+        }
       });
     }
   }
@@ -90,6 +111,11 @@ class _TradePageState extends State<TradePage> {
                         final safeIndex = index.clamp(0, tabs.length - 1);
                         if (tradePageService.selectedTabIndex != safeIndex) {
                           tradePageService.setSelectedTabIndex(safeIndex);
+                        }
+                        if (safeIndex == 0) {
+                          tradePageService.fetchPositions(context);
+                        } else if (safeIndex == 1) {
+                          context.read<TradeOrdersService>().fetchOrders();
                         }
                       },
                       child: Column(
@@ -202,6 +228,39 @@ class _TradePageState extends State<TradePage> {
                             ),
                           ),
                           const SizedBox(height: 10),
+                          if (tradePageService.isLoadingPositions &&
+                              positions.isEmpty)
+                            const LinearProgressIndicator(),
+                          if (tradePageService.positionsError != null)
+                            Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      tradePageService.positionsError!,
+                                      style: TextStyle(color: Colors.red[700]),
+                                    ),
+                                  ),
+                                  TextButton(
+                                    onPressed:
+                                        () => tradePageService.fetchPositions(
+                                          context,
+                                        ),
+                                    child: const Text('Retry'),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          if (!tradePageService.isLoadingPositions &&
+                              tradePageService.positionsError == null &&
+                              positions.isEmpty)
+                            const Padding(
+                              padding: EdgeInsets.all(16),
+                              child: Center(
+                                child: Text('No trade positions found.'),
+                              ),
+                            ),
                           ...List.generate(positions.length, (index) {
                             final item = positions[index];
                             return Dismissible(
@@ -224,8 +283,25 @@ class _TradePageState extends State<TradePage> {
                                   size: 22,
                                 ),
                               ),
+                              confirmDismiss: (_) async {
+                                final deleted = await tradePageService
+                                    .deletePosition(context, item.symbolName);
+                                if (!deleted && context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        tradePageService.deletePositionError ??
+                                            'Unable to delete trade position.',
+                                      ),
+                                    ),
+                                  );
+                                }
+                                return deleted;
+                              },
                               onDismissed: (_) {
-                                tradePageService.removePositionAt(index);
+                                tradePageService.removePositionBySymbol(
+                                  item.symbolName,
+                                );
                               },
                               child: Container(
                                 margin: const EdgeInsets.symmetric(
@@ -271,36 +347,61 @@ class _TradePageState extends State<TradePage> {
                                                     ),
                                               ),
                                               const SizedBox(height: 3),
-                                              Text(
-                                                item.avgPrice,
-                                                style:
-                                                    NerveStyles.tradePositionPriceStyle(
-                                                      titleColor,
-                                                    ),
+                                              Row(
+                                                children: [
+                                                  Text(
+                                                    item.displayPrice,
+                                                    style:
+                                                        NerveStyles.tradePositionPriceStyle(
+                                                          titleColor,
+                                                        ),
+                                                  ),
+                                                  const SizedBox(width: 6),
+                                                  Text(
+                                                    item.displayPricePercentage,
+                                                    style:
+                                                        NerveStyles.tradePositionPriceStyle(
+                                                          item.pricePercentage >=
+                                                                  0
+                                                              ? positiveColor
+                                                              : const Color(
+                                                                0xFFFF4A4A,
+                                                              ),
+                                                        ),
+                                                  ),
+                                                ],
                                               ),
                                             ],
                                           ),
                                         ),
                                         GestureDetector(
                                           onTap: () {
+                                            unawaited(
+                                              tradePageService
+                                                  .fetchPositionDetails(
+                                                    context,
+                                                    symbolName: item.symbolName,
+                                                  ),
+                                            );
                                             Navigator.push(
                                               context,
                                               MaterialPageRoute(
                                                 builder:
-                                                    (
-                                                      _,
-                                                    ) => PositionSymbolDetailsPage(
-                                                      symbol: item.symbol,
-                                                      avgPrice: item.avgPrice,
-                                                      side: item.side,
-                                                      netUnits: item.netUnits,
-                                                      averageAmount:
-                                                          item.averageAmount,
-                                                      netPnL: item.netPnL,
-                                                      badge: item.badge,
-                                                      badgeColor:
-                                                          item.badgeColor,
-                                                    ),
+                                                    (_) =>
+                                                        PositionSymbolDetailsPage(
+                                                          symbol: item.symbol,
+                                                          avgPrice:
+                                                              item.displayPrice,
+                                                          side: item.side,
+                                                          netUnits:
+                                                              item.netUnits,
+                                                          averageAmount:
+                                                              item.averageAmount,
+                                                          netPnL: item.netPnL,
+                                                          badge: item.badge,
+                                                          badgeColor:
+                                                              item.badgeColor,
+                                                        ),
                                               ),
                                             );
                                           },

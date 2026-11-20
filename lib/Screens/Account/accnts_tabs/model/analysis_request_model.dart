@@ -36,3 +36,15 @@ class AccountAnalysisCalendarRequest {
     'month': month,
   };
 }
+
+class AccountAnalysisDayDetailsRequest {
+  const AccountAnalysisDayDetailsRequest({
+    required this.accountId,
+    required this.date,
+  });
+
+  final String accountId;
+  final String date;
+
+  Map<String, dynamic> toJson() => {'accnt_id': accountId, 'date': date};
+}

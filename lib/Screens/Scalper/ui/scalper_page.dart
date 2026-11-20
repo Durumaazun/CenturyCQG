@@ -353,7 +353,7 @@ class _ScalperControlsBody extends StatelessWidget {
             : (isDarkMode ? const Color(0xFF282D2A) : const Color(0xFFEAEAEA));
     final textColor =
         isSelected
-            ? const Color(0xFF2A2A2A)
+            ? Colors.white
             : (isDarkMode ? Colors.white : const Color(0xB2000000));
 
     return InkWell(

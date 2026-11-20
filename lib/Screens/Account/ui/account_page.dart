@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:century_cqg/Helper/nerve_styles.dart';
 import 'package:century_cqg/Helper/nerve_colors.dart';
 import 'package:century_cqg/Screens/Account/service/account_service.dart';
+import 'package:century_cqg/Screens/Account/accnts_tabs/service/accnts_tab_service.dart';
+import 'package:century_cqg/Screens/Account/accnts_tabs/service/analysis_service.dart';
 import 'package:century_cqg/Screens/Account/accnts_tabs/ui/analysis_tab.dart';
 import 'package:century_cqg/Screens/Account/accnts_tabs/ui/overview_tab.dart';
 import 'package:century_cqg/Screens/Account/accnts_tabs/ui/settings_tab.dart';
@@ -39,6 +41,16 @@ class AccountPage extends StatelessWidget {
                     (index) => GestureDetector(
                       onTap: () {
                         accountProvider.setSelectedTabIndex(index);
+                        if (index == 0) {
+                          context.read<AccntsTabService>().loadAccountOverview(
+                            context,
+                          );
+                          dashboardService.callTopPositions(context);
+                        } else if (index == 1) {
+                          context.read<AnalysisService>().loadAnalysis(
+                            context,
+                          );
+                        }
                       },
                       child: Column(
                         mainAxisSize: MainAxisSize.min,

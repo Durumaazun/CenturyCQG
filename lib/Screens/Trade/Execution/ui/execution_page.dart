@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 import 'package:century_cqg/Helper/nerve_base.dart';
 import 'package:century_cqg/Helper/nerve_styles.dart';
-import 'package:century_cqg/Screens/Trade/Execution/model/execution_model.dart';
+import 'package:century_cqg/Screens/Trade/model/trade_api_models.dart';
 import 'package:century_cqg/Screens/Trade/Execution/service/execution_service.dart';
 
 class ExecutionPage extends StatelessWidget {
@@ -18,6 +19,31 @@ class ExecutionPage extends StatelessWidget {
     final dividerColor =
         isDarkMode ? const Color(0xFF2A302D) : const Color(0xFFE8ECEA);
     final positiveColor = const Color(0xFF00A879);
+    final executions = service.executions;
+
+    if (service.isLoading && executions.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (service.error != null && executions.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(service.error!, textAlign: TextAlign.center),
+              TextButton(
+                onPressed: service.fetchExecutions,
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    if (executions.isEmpty) {
+      return const Center(child: Text('No executions found.'));
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -40,21 +66,22 @@ class ExecutionPage extends StatelessWidget {
         Expanded(
           child: ListView.separated(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            itemCount: service.executions.length,
+            itemCount: executions.length,
             separatorBuilder:
                 (_, __) => Container(height: 1, color: dividerColor),
             itemBuilder: (context, index) {
-              final item = service.executions[index];
+              final item = executions[index];
+              final dateLabel = _dateLabel(item.executedAt);
               final showDate =
                   index == 0 ||
-                  item.dateLabel != service.executions[index - 1].dateLabel;
+                  dateLabel != _dateLabel(executions[index - 1].executedAt);
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (showDate) ...[
                     if (index != 0) const SizedBox(height: 16),
                     Text(
-                      item.dateLabel,
+                      dateLabel,
                       style: NerveStyles.tradeDetailsSectionTitleStyle(
                         titleColor,
                       ),
@@ -72,7 +99,7 @@ class ExecutionPage extends StatelessWidget {
   }
 
   Widget _executionRow(
-    ExecutionItem item,
+    TradeExecution item,
     Color titleColor,
     Color mutedColor,
     Color positiveColor,
@@ -87,12 +114,14 @@ class ExecutionPage extends StatelessWidget {
                 width: 18,
                 height: 18,
                 decoration: BoxDecoration(
-                  color: item.iconColor,
+                  color: const Color(0xFF8E8E93),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 alignment: Alignment.center,
                 child: Text(
-                  item.iconText,
+                  item.symbolName.isEmpty
+                      ? ''
+                      : item.symbolName[0].toUpperCase(),
                   style: const TextStyle(
                     fontFamily: 'Inter',
                     fontSize: 10,
@@ -103,7 +132,7 @@ class ExecutionPage extends StatelessWidget {
               ),
               const SizedBox(width: 10),
               Text(
-                item.symbol,
+                item.symbolName,
                 style: NerveStyles.tradePositionSymbolStyle(titleColor),
               ),
               const Spacer(),
@@ -115,7 +144,7 @@ class ExecutionPage extends StatelessWidget {
               Icon(Icons.access_time, size: 13, color: mutedColor),
               const SizedBox(width: 4),
               Text(
-                item.orderTime,
+                _timeLabel(item.executedAt),
                 style: NerveStyles.tradeDetailsOrderDateStyle(mutedColor),
               ),
             ],
@@ -128,19 +157,21 @@ class ExecutionPage extends StatelessWidget {
                 children: [
                   SizedBox(
                     width: columnWidth,
-                    child: _metric('B/S', item.side, mutedColor, positiveColor),
-                  ),
-                  const SizedBox(width: 8),
-                  SizedBox(
-                    width: columnWidth,
-                    child: _metric('Units', item.units, mutedColor, titleColor),
+                    child: _metric(
+                      'B/S',
+                      item.side,
+                      mutedColor,
+                      item.side.toLowerCase() == 'buy'
+                          ? positiveColor
+                          : const Color(0xFFE53935),
+                    ),
                   ),
                   const SizedBox(width: 8),
                   SizedBox(
                     width: columnWidth,
                     child: _metric(
-                      'Amount',
-                      item.amount,
+                      'Units',
+                      _formatNumber(item.fillQuantity),
                       mutedColor,
                       titleColor,
                     ),
@@ -149,10 +180,20 @@ class ExecutionPage extends StatelessWidget {
                   SizedBox(
                     width: columnWidth,
                     child: _metric(
-                      'Profit',
-                      item.profit,
+                      'Price',
+                      _money(item.fillPrice),
                       mutedColor,
-                      positiveColor,
+                      titleColor,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    width: columnWidth,
+                    child: _metric(
+                      'Amount',
+                      _money(item.amount),
+                      mutedColor,
+                      titleColor,
                       textAlign: TextAlign.end,
                     ),
                   ),
@@ -192,5 +233,16 @@ class ExecutionPage extends StatelessWidget {
       ],
     );
   }
-}
 
+  String _dateLabel(DateTime? date) =>
+      date == null
+          ? 'Date unavailable'
+          : DateFormat('dd MMM yyyy').format(date.toLocal());
+
+  String _timeLabel(DateTime? date) =>
+      date == null ? '--' : DateFormat('HH:mm').format(date.toLocal());
+
+  String _formatNumber(num value) => NumberFormat('#,##0.##').format(value);
+
+  String _money(num value) => '\$${NumberFormat('#,##0.00').format(value)}';
+}

@@ -1,3 +1,7 @@
+import 'dart:async';
+import 'dart:math' as math;
+
+import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:provider/provider.dart';
@@ -8,19 +12,64 @@ import 'package:century_cqg/Screens/Watchlist/model/watchlist_item.dart';
 import 'package:century_cqg/Screens/OptionChain/ui/option_chain_content.dart';
 import 'package:century_cqg/Screens/OptionChain/ui/option_chain_page.dart';
 import 'package:century_cqg/Screens/OptionChain/provider/option_chain_provider.dart';
+import 'package:century_cqg/Screens/Trade/model/trade_api_models.dart';
+import 'package:century_cqg/Screens/Trade/model/trade_symbol_details_model.dart';
+import 'package:century_cqg/Screens/Trade/service/trade_repository.dart';
+import 'package:century_cqg/Screens/Trade/service/trade_use_cases.dart';
 import 'package:century_cqg/Screens/Trade/ui/orders/modify_order.dart';
 
 class StockDetailsProvider extends ChangeNotifier {
+  StockDetailsProvider({TradeUseCases? useCases})
+    : _useCases = useCases ?? TradeUseCases(TradeRepository());
+
+  static const List<String> periods = [
+    '1H',
+    '1D',
+    '5D',
+    '1M',
+    '1Y',
+    '5Y',
+    'MAX',
+  ];
+
+  final TradeUseCases _useCases;
   int _selectedPeriodIndex = 1; // "1D" active by default
   int _selectedTabIndex = 0; // "Overview" active by default
+  String? _symbolName;
+  TradeSymbolDetails? _symbolDetails;
+  List<NetPositionDetail> _netPositionDetails = [];
+  bool _isLoadingSymbolDetails = false;
+  bool _isLoadingNetPositionDetails = false;
+  String? _symbolDetailsError;
+  String? _netPositionDetailsError;
+  int _symbolRequestId = 0;
+  int _netPositionRequestId = 0;
 
   int get selectedPeriodIndex => _selectedPeriodIndex;
   int get selectedTabIndex => _selectedTabIndex;
+  String get selectedPeriod => periods[_selectedPeriodIndex];
+  TradeSymbolDetails? get symbolDetails => _symbolDetails;
+  List<NetPositionDetail> get netPositionDetails =>
+      List.unmodifiable(_netPositionDetails);
+  bool get isLoadingSymbolDetails => _isLoadingSymbolDetails;
+  bool get isLoadingNetPositionDetails => _isLoadingNetPositionDetails;
+  String? get symbolDetailsError => _symbolDetailsError;
+  String? get netPositionDetailsError => _netPositionDetailsError;
+
+  void loadSymbol(String symbolName) {
+    if (_symbolName == symbolName) return;
+    _symbolName = symbolName;
+    unawaited(fetchSymbolDetails());
+    unawaited(fetchNetPositionDetails());
+  }
 
   void setSelectedPeriodIndex(int index) {
-    if (_selectedPeriodIndex == index) return;
+    if (index < 0 || index >= periods.length || _selectedPeriodIndex == index) {
+      return;
+    }
     _selectedPeriodIndex = index;
     notifyListeners();
+    unawaited(fetchSymbolDetails());
   }
 
   void setSelectedTabIndex(int index) {
@@ -28,76 +77,76 @@ class StockDetailsProvider extends ChangeNotifier {
     _selectedTabIndex = index;
     notifyListeners();
   }
+
+  Future<void> fetchSymbolDetails() async {
+    final symbolName = _symbolName;
+    if (symbolName == null || symbolName.isEmpty) return;
+    final requestId = ++_symbolRequestId;
+    _isLoadingSymbolDetails = true;
+    _symbolDetailsError = null;
+    notifyListeners();
+    try {
+      final details = await _useCases.fetchSymbolDetails(
+        symbolName,
+        period: selectedPeriod,
+      );
+      if (requestId == _symbolRequestId) _symbolDetails = details;
+    } on Exception catch (error) {
+      if (requestId == _symbolRequestId) _symbolDetailsError = error.toString();
+    } finally {
+      if (requestId == _symbolRequestId) {
+        _isLoadingSymbolDetails = false;
+        notifyListeners();
+      }
+    }
+  }
+
+  Future<void> fetchNetPositionDetails() async {
+    final symbolName = _symbolName;
+    if (symbolName == null || symbolName.isEmpty) return;
+    final requestId = ++_netPositionRequestId;
+    _isLoadingNetPositionDetails = true;
+    _netPositionDetailsError = null;
+    notifyListeners();
+    try {
+      final details = await _useCases.fetchNetPositionDetails(symbolName);
+      if (requestId == _netPositionRequestId) {
+        _netPositionDetails = details;
+      }
+    } on Exception catch (error) {
+      if (requestId == _netPositionRequestId) {
+        _netPositionDetailsError = error.toString();
+      }
+    } finally {
+      if (requestId == _netPositionRequestId) {
+        _isLoadingNetPositionDetails = false;
+        notifyListeners();
+      }
+    }
+  }
 }
 
-class StockDetailsPage extends StatelessWidget {
+class StockDetailsPage extends StatefulWidget {
   final String symbol;
   final String name;
-  final double price;
-  final double percentageChange;
-  final double pointsChange;
-  final double bid;
-  final double ask;
-  final List<Offset>? sparklinePoints;
 
   const StockDetailsPage({
     super.key,
     required this.symbol,
     required this.name,
-    required this.price,
-    required this.percentageChange,
-    required this.pointsChange,
-    required this.bid,
-    required this.ask,
-    this.sparklinePoints,
   });
 
   factory StockDetailsPage.fromStockItem(StockItem item) {
     return StockDetailsPage(
       symbol: item.symbol,
       name: item.name,
-      price: item.price,
-      percentageChange: item.percentageChange,
-      pointsChange: item.pointsChange,
-      bid: item.bid,
-      ask: item.ask,
-      sparklinePoints: item.sparklinePoints,
     );
   }
 
   factory StockDetailsPage.fromStock(Stock stock) {
-    final stockPrice =
-        double.tryParse(stock.price.replaceAll(RegExp(r'[^\d.]'), '')) ??
-        577.87;
-    final stockChange =
-        double.tryParse(stock.change.replaceAll(RegExp(r'[^\d.-]'), '')) ??
-        3.76;
-    final stockPoints =
-        double.tryParse(
-          stock.changePoints.replaceAll(RegExp(r'[^\d.-]'), ''),
-        ) ??
-        4.89;
-    final min =
-        double.tryParse(stock.minPrice.replaceAll(RegExp(r'[^\d.-]'), '')) ??
-        1125.08;
-    final max =
-        double.tryParse(stock.maxPrice.replaceAll(RegExp(r'[^\d.-]'), '')) ??
-        1130.04;
     return StockDetailsPage(
       symbol: stock.symbol,
-      name:
-          stock.symbol == 'AAPL'
-              ? 'Apple Inc.'
-              : stock.symbol == 'TSLA'
-              ? 'Tesla Motors'
-              : stock.symbol == 'NVDA'
-              ? 'NVIDIA Corp'
-              : '${stock.symbol} Inc.',
-      price: stockPrice,
-      percentageChange: stockChange,
-      pointsChange: stockPoints,
-      bid: min,
-      ask: max,
+      name: stock.symbol,
     );
   }
 
@@ -105,36 +154,51 @@ class StockDetailsPage extends StatelessWidget {
     return StockDetailsPage(
       symbol: item.symbol,
       name: item.companyName,
-      price: item.price,
-      percentageChange: item.changePercent,
-      pointsChange: item.price * 0.08,
-      bid: item.price + 552.17,
-      ask: item.price + 547.21,
     );
   }
 
-  static const List<String> _periods = [
-    "1H",
-    "1D",
-    "5D",
-    "1M",
-    "1Y",
-    "5Y",
-    "MAX",
-  ];
+  @override
+  State<StockDetailsPage> createState() => _StockDetailsPageState();
+}
+
+class _StockDetailsPageState extends State<StockDetailsPage> {
   static const List<String> _tabs = [
-    "Overview",
-    "Market Depth",
-    "Details",
-    "Option Chain",
+    'Overview',
+    'Market Depth',
+    'Details',
+    'Option Chain',
   ];
+
+  String get symbol => widget.symbol;
+  String get name => widget.name;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<StockDetailsProvider>().loadSymbol(symbol);
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant StockDetailsPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.symbol != widget.symbol) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) context.read<StockDetailsProvider>().loadSymbol(symbol);
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Consumer<StockDetailsProvider>(
       builder: (context, provider, _) {
         final isDarkMode = NerveBase().isDarkMode;
-        final isPositive = percentageChange >= 0;
+        final quote = provider.symbolDetails;
+        final currentPrice = quote?.price;
+        final currentPercentage = quote?.pricePercentage;
+        final isPositive = (currentPercentage ?? 0) >= 0;
         final themeColor =
             isPositive
                 ? (isDarkMode ? Colors.green.shade300 : const Color(0xFF27A374))
@@ -186,6 +250,8 @@ class StockDetailsPage extends StatelessWidget {
                           context: context,
                           isDarkMode: isDarkMode,
                           themeColor: themeColor,
+                          currentPrice: currentPrice,
+                          currentPercentage: currentPercentage,
                         ),
 
                         const SizedBox(height: 16),
@@ -198,7 +264,7 @@ class StockDetailsPage extends StatelessWidget {
                           child: _buildFlChart(
                             themeColor: themeColor,
                             isDarkMode: isDarkMode,
-                            selectedPeriodIndex: provider.selectedPeriodIndex,
+                            provider: provider,
                           ),
                         ),
 
@@ -213,7 +279,7 @@ class StockDetailsPage extends StatelessWidget {
                         Container(height: 8, color: sectionSeparatorColor),
 
                         // Net Positions Section
-                        _buildNetPositionsSection(isDarkMode),
+                        _buildNetPositionsSection(provider, isDarkMode),
 
                         // Section Separator (Divider Bar)
                         Container(height: 16, color: sectionSeparatorColor),
@@ -296,7 +362,7 @@ class StockDetailsPage extends StatelessWidget {
                         if (provider.selectedTabIndex == 0)
                           _buildOverviewTabContent(isDarkMode)
                         else if (provider.selectedTabIndex == 1)
-                          _buildMarketDepthContent(isDarkMode)
+                          _buildMarketDepthContent(isDarkMode, provider)
                         else if (provider.selectedTabIndex == 2)
                           _buildDetailsTabContent(isDarkMode)
                         else if (provider.selectedTabIndex == 3)
@@ -326,7 +392,20 @@ class StockDetailsPage extends StatelessWidget {
                           child: SizedBox(
                             height: 40,
                             child: ElevatedButton(
-                              onPressed: () {},
+                              onPressed:
+                                  quote == null
+                                      ? null
+                                      : () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder:
+                                        (_) => ModifyOrderPage(
+                                          symbolName: symbol,
+                                          side: 'sell',
+                                        ),
+                                  ),
+                                );
+                              },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFFDB3D52),
                                 shape: RoundedRectangleBorder(
@@ -348,9 +427,9 @@ class StockDetailsPage extends StatelessWidget {
                                       ),
                                     ),
                                     const SizedBox(width: 4),
-                                    const Text(
-                                      '\$184.0',
-                                      style: TextStyle(
+                                    Text(
+                                      '\$${quote?.bid.toStringAsFixed(2) ?? '--'}',
+                                      style: const TextStyle(
                                         color: Color(0xFFFFFFFF),
                                         fontSize: 12,
                                         fontWeight: FontWeight.w400,
@@ -367,10 +446,17 @@ class StockDetailsPage extends StatelessWidget {
                           child: SizedBox(
                             height: 40,
                             child: ElevatedButton(
-                              onPressed: () {
+                              onPressed:
+                                  quote == null
+                                      ? null
+                                      : () {
                                 Navigator.of(context).push(
                                   MaterialPageRoute(
-                                    builder: (_) => const ModifyOrderPage(),
+                                    builder:
+                                        (_) => ModifyOrderPage(
+                                          symbolName: symbol,
+                                          side: 'buy',
+                                        ),
                                   ),
                                 );
                               },
@@ -395,9 +481,9 @@ class StockDetailsPage extends StatelessWidget {
                                       ),
                                     ),
                                     const SizedBox(width: 4),
-                                    const Text(
-                                      '\$184.0',
-                                      style: TextStyle(
+                                    Text(
+                                      '\$${quote?.ask.toStringAsFixed(2) ?? '--'}',
+                                      style: const TextStyle(
                                         color: Color(0xFFFFFFFF),
                                         fontSize: 12,
                                         fontWeight: FontWeight.w400,
@@ -425,6 +511,8 @@ class StockDetailsPage extends StatelessWidget {
     required BuildContext context,
     required bool isDarkMode,
     required Color themeColor,
+    required double? currentPrice,
+    required double? currentPercentage,
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -462,7 +550,9 @@ class StockDetailsPage extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Text(
-            '\$${price.toStringAsFixed(2)}',
+            currentPrice == null
+                ? '--'
+                : '\$${currentPrice.toStringAsFixed(2)}',
             style: TextStyle(
               color: isDarkMode ? Colors.white : const Color(0xB2000000),
               fontWeight: FontWeight.w500,
@@ -471,7 +561,9 @@ class StockDetailsPage extends StatelessWidget {
           ),
           const SizedBox(width: 4),
           Text(
-            '${percentageChange >= 0 ? '+' : ''}${percentageChange.toStringAsFixed(2)}%',
+            currentPercentage == null
+                ? '--'
+                : '${currentPercentage >= 0 ? '+' : ''}${currentPercentage.toStringAsFixed(2)}%',
             style: TextStyle(
               color: themeColor,
               fontWeight: FontWeight.w500,
@@ -523,8 +615,10 @@ class StockDetailsPage extends StatelessWidget {
           Expanded(
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: List.generate(_periods.length, (index) {
-                final period = _periods[index];
+              children: List.generate(
+                StockDetailsProvider.periods.length,
+                (index) {
+                final period = StockDetailsProvider.periods[index];
                 final isSelected = index == provider.selectedPeriodIndex;
                 return GestureDetector(
                   onTap: () {
@@ -576,15 +670,63 @@ class StockDetailsPage extends StatelessWidget {
   Widget _buildFlChart({
     required Color themeColor,
     required bool isDarkMode,
-    required int selectedPeriodIndex,
+    required StockDetailsProvider provider,
   }) {
-    final spots = _getDummySpotsForPeriod(selectedPeriodIndex);
-    final bottomTitles = _getBottomTitlesForPeriod(selectedPeriodIndex);
+    final points = provider.symbolDetails?.chartPoints ?? const [];
+    if (provider.isLoadingSymbolDetails && points.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (provider.symbolDetailsError != null && points.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              provider.symbolDetailsError!,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: isDarkMode ? Colors.white70 : const Color(0xFF666666),
+              ),
+            ),
+            TextButton(
+              onPressed: provider.fetchSymbolDetails,
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
+    if (points.isEmpty) {
+      return Center(
+        child: Text(
+          'No chart data available.',
+          style: TextStyle(
+            color: isDarkMode ? Colors.white70 : const Color(0xFF666666),
+          ),
+        ),
+      );
+    }
+
+    final spots = List<FlSpot>.generate(
+      points.length,
+      (index) => FlSpot(index.toDouble(), points[index].price),
+      growable: false,
+    );
+    final minPrice = points.map((point) => point.price).reduce(math.min);
+    final maxPrice = points.map((point) => point.price).reduce(math.max);
+    final priceRange = maxPrice - minPrice;
+    final padding =
+        priceRange > 0
+            ? priceRange * 0.1
+            : math.max(minPrice.abs() * 0.005, 0.01);
+    final minY = minPrice - padding;
+    final maxY = maxPrice + padding;
+    final interval = (maxY - minY) / 4;
 
     return LineChart(
       LineChartData(
-        minY: 0.718,
-        maxY: 0.782,
+        minY: minY,
+        maxY: maxY,
         minX: 0,
         maxX: (spots.length - 1).toDouble(),
         gridData: const FlGridData(show: false),
@@ -600,11 +742,8 @@ class StockDetailsPage extends StatelessWidget {
             sideTitles: SideTitles(
               showTitles: true,
               reservedSize: 34,
-              interval: 0.015,
+              interval: interval,
               getTitlesWidget: (value, meta) {
-                if (value < 0.719 || value > 0.781) {
-                  return const SizedBox.shrink();
-                }
                 return SideTitleWidget(
                   meta: meta,
                   child: Text(
@@ -624,17 +763,16 @@ class StockDetailsPage extends StatelessWidget {
             sideTitles: SideTitles(
               showTitles: true,
               reservedSize: 24,
-              interval: (spots.length - 1) / (bottomTitles.length - 1),
+              interval: 1,
               getTitlesWidget: (value, meta) {
-                final step = (spots.length - 1) / (bottomTitles.length - 1);
-                final index = (value / step).round();
-                if (index < 0 || index >= bottomTitles.length) {
+                final index = value.toInt();
+                if (index < 0 || index >= points.length) {
                   return const SizedBox.shrink();
                 }
                 return SideTitleWidget(
                   meta: meta,
                   child: Text(
-                    bottomTitles[index],
+                    points[index].displayDate,
                     style: TextStyle(
                       fontSize: 9,
                       color:
@@ -660,10 +798,8 @@ class StockDetailsPage extends StatelessWidget {
             ),
             getTooltipItems: (touchedSpots) {
               return touchedSpots.map((spot) {
-                final ratio = spot.y / 0.75;
-                final computedPrice = price * ratio;
                 return LineTooltipItem(
-                  '\$${computedPrice.toStringAsFixed(2)}',
+                  '\$${spot.y.toStringAsFixed(2)}',
                   TextStyle(
                     color: isDarkMode ? Colors.white : const Color(0xB2000000),
                     fontWeight: FontWeight.bold,
@@ -677,8 +813,7 @@ class StockDetailsPage extends StatelessWidget {
         lineBarsData: [
           LineChartBarData(
             spots: spots,
-            isCurved: true,
-            curveSmoothness: 0.35,
+            isCurved: false,
             color: themeColor,
             barWidth: 2.2,
             isStrokeCapRound: true,
@@ -700,152 +835,13 @@ class StockDetailsPage extends StatelessWidget {
     );
   }
 
-  List<FlSpot> _getDummySpotsForPeriod(int periodIndex) {
-    // Default 1D curve matching screenshot wave
-    const default1D = [
-      FlSpot(0, 0.725),
-      FlSpot(1, 0.748),
-      FlSpot(2, 0.752),
-      FlSpot(3, 0.742),
-      FlSpot(4, 0.746),
-      FlSpot(5, 0.736),
-      FlSpot(6, 0.742),
-      FlSpot(7, 0.754),
-      FlSpot(8, 0.748),
-      FlSpot(9, 0.756),
-      FlSpot(10, 0.750),
-      FlSpot(11, 0.744),
-      FlSpot(12, 0.746),
-      FlSpot(13, 0.735),
-      FlSpot(14, 0.748),
-      FlSpot(15, 0.755),
-      FlSpot(16, 0.750),
-      FlSpot(17, 0.754),
-      FlSpot(18, 0.748),
-      FlSpot(19, 0.750),
-      FlSpot(20, 0.745),
-      FlSpot(21, 0.762),
-      FlSpot(22, 0.768),
-      FlSpot(23, 0.761),
-      FlSpot(24, 0.751),
-      FlSpot(25, 0.750),
-      FlSpot(26, 0.742),
-      FlSpot(27, 0.749),
-      FlSpot(28, 0.752),
-      FlSpot(29, 0.741),
-    ];
-
-    switch (periodIndex) {
-      case 0: // 1H
-        return const [
-          FlSpot(0, 0.745),
-          FlSpot(1, 0.748),
-          FlSpot(2, 0.742),
-          FlSpot(3, 0.750),
-          FlSpot(4, 0.755),
-          FlSpot(5, 0.751),
-          FlSpot(6, 0.758),
-          FlSpot(7, 0.752),
-          FlSpot(8, 0.760),
-          FlSpot(9, 0.756),
-        ];
-      case 1: // 1D
-        return default1D;
-      case 2: // 5D
-        return const [
-          FlSpot(0, 0.730),
-          FlSpot(1, 0.738),
-          FlSpot(2, 0.745),
-          FlSpot(3, 0.740),
-          FlSpot(4, 0.752),
-          FlSpot(5, 0.758),
-          FlSpot(6, 0.754),
-          FlSpot(7, 0.762),
-          FlSpot(8, 0.766),
-          FlSpot(9, 0.759),
-        ];
-      case 3: // 1M
-        return const [
-          FlSpot(0, 0.722),
-          FlSpot(1, 0.730),
-          FlSpot(2, 0.728),
-          FlSpot(3, 0.740),
-          FlSpot(4, 0.746),
-          FlSpot(5, 0.742),
-          FlSpot(6, 0.755),
-          FlSpot(7, 0.760),
-          FlSpot(8, 0.754),
-          FlSpot(9, 0.765),
-        ];
-      case 4: // 1Y
-        return const [
-          FlSpot(0, 0.720),
-          FlSpot(1, 0.728),
-          FlSpot(2, 0.735),
-          FlSpot(3, 0.745),
-          FlSpot(4, 0.742),
-          FlSpot(5, 0.756),
-          FlSpot(6, 0.762),
-          FlSpot(7, 0.758),
-          FlSpot(8, 0.770),
-          FlSpot(9, 0.764),
-        ];
-      case 5: // 5Y
-        return const [
-          FlSpot(0, 0.724),
-          FlSpot(1, 0.732),
-          FlSpot(2, 0.740),
-          FlSpot(3, 0.738),
-          FlSpot(4, 0.750),
-          FlSpot(5, 0.755),
-          FlSpot(6, 0.765),
-          FlSpot(7, 0.772),
-          FlSpot(8, 0.768),
-          FlSpot(9, 0.775),
-        ];
-      default: // MAX
-        return default1D;
-    }
-  }
-
-  List<String> _getBottomTitlesForPeriod(int periodIndex) {
-    switch (periodIndex) {
-      case 0: // 1H
-        return ["9:30", "10:00", "10:30", "11:00", "11:30"];
-      case 1: // 1D
-        return [
-          "Sep 1",
-          "Nov 1",
-          "Nov 1",
-          "Jan 1",
-          "Mar 1",
-          "Mar 1",
-          "May 1",
-          "May 1",
-        ];
-      case 2: // 5D
-        return ["Mon", "Tue", "Wed", "Thu", "Fri"];
-      case 3: // 1M
-        return ["W1", "W2", "W3", "W4"];
-      case 4: // 1Y
-        return ["Q1", "Q2", "Q3", "Q4"];
-      case 5: // 5Y
-        return ["2022", "2023", "2024", "2025", "2026"];
-      default:
-        return [
-          "Sep 1",
-          "Nov 1",
-          "Nov 1",
-          "Jan 1",
-          "Mar 1",
-          "Mar 1",
-          "May 1",
-          "May 1",
-        ];
-    }
-  }
-
-  Widget _buildNetPositionsSection(bool isDarkMode) {
+  Widget _buildNetPositionsSection(
+    StockDetailsProvider provider,
+    bool isDarkMode,
+  ) {
+    final numberFormat = NumberFormat('#,##0.##');
+    final priceFormat = NumberFormat('#,##0.00');
+    final pnlFormat = NumberFormat('#,##0.00;-#,##0.00');
     return Padding(
       padding: const EdgeInsets.only(top: 16, left: 16, right: 16, bottom: 40),
       child: Column(
@@ -873,23 +869,51 @@ class StockDetailsPage extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-
-          // Net Positions Rows with individual headers matching design
-          _buildPositionRow(
-            "Buy",
-            "20,000",
-            "66,000.66",
-            "+13,000.40",
-            isDarkMode,
-          ),
-          const SizedBox(height: 16),
-          _buildPositionRow(
-            "Buy",
-            "20,000",
-            "66,000.66",
-            "+13,000.40",
-            isDarkMode,
-          ),
+          if (provider.isLoadingNetPositionDetails &&
+              provider.netPositionDetails.isEmpty)
+            const Center(child: CircularProgressIndicator())
+          else if (provider.netPositionDetailsError != null &&
+              provider.netPositionDetails.isEmpty)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  provider.netPositionDetailsError!,
+                  style: TextStyle(
+                    color:
+                        isDarkMode
+                            ? Colors.white70
+                            : const Color(0xFF666666),
+                  ),
+                ),
+                TextButton(
+                  onPressed: provider.fetchNetPositionDetails,
+                  child: const Text('Retry'),
+                ),
+              ],
+            )
+          else if (provider.netPositionDetails.isEmpty)
+            Text(
+              'No open positions for $symbol.',
+              style: TextStyle(
+                color: isDarkMode ? Colors.white70 : const Color(0xFF666666),
+              ),
+            )
+          else
+            ...provider.netPositionDetails.map((position) {
+              final pnl =
+                  '${position.netPnl >= 0 ? '+' : ''}${pnlFormat.format(position.netPnl)}';
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: _buildPositionRow(
+                  position.side,
+                  numberFormat.format(position.netUnit),
+                  priceFormat.format(position.avgPrice),
+                  pnl,
+                  isDarkMode,
+                ),
+              );
+            }),
         ],
       ),
     );
@@ -913,6 +937,14 @@ class StockDetailsPage extends StatelessWidget {
     String pnl,
     bool isDarkMode,
   ) {
+    final sideColor =
+        bs.toLowerCase() == 'buy'
+            ? const Color(0xFF27A374)
+            : const Color(0xFFDB3D52);
+    final pnlColor =
+        pnl.startsWith('-')
+            ? const Color(0xFFDB3D52)
+            : const Color(0xFF27A374);
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -924,10 +956,10 @@ class StockDetailsPage extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 bs,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
-                  color: Color(0xFF27A374),
+                  color: sideColor,
                 ),
               ),
             ],
@@ -975,10 +1007,10 @@ class StockDetailsPage extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 pnl,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
-                  color: Color(0xFF27A374),
+                  color: pnlColor,
                 ),
               ),
             ],
@@ -1043,22 +1075,30 @@ class StockDetailsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildMarketDepthContent(bool isDarkMode) {
+  Widget _buildMarketDepthContent(
+    bool isDarkMode,
+    StockDetailsProvider provider,
+  ) {
+    final quote = provider.symbolDetails;
     final bidData = [
-      {'price': '164.60', 'qty': '3.2K', 'total': '2.9K'},
-      {'price': '164.55', 'qty': '5.1K', 'total': '4.6K'},
-      {'price': '164.50', 'qty': '8.7K', 'total': '7.2K'},
-      {'price': '164.45', 'qty': '2.4K', 'total': '3.8K'},
-      {'price': '164.40', 'qty': '6.1K', 'total': '5.5K'},
+      {
+        'price': quote == null ? '--' : quote.bid.toStringAsFixed(2),
+        'qty': '--',
+        'total': '--',
+      },
     ];
-
     final askData = [
-      {'price': '164.70', 'qty': '3.2K', 'total': '2.9K'},
-      {'price': '164.75', 'qty': '5.1K', 'total': '4.6K'},
-      {'price': '164.80', 'qty': '8.7K', 'total': '7.2K'},
-      {'price': '164.85', 'qty': '2.4K', 'total': '3.8K'},
-      {'price': '164.90', 'qty': '6.1K', 'total': '5.5K'},
+      {
+        'price': quote == null ? '--' : quote.ask.toStringAsFixed(2),
+        'qty': '--',
+        'total': '--',
+      },
     ];
+    final spread = quote == null ? null : quote.ask - quote.bid;
+    final spreadPercentage =
+        quote == null || quote.price == 0
+            ? null
+            : ((quote.ask - quote.bid) / quote.price) * 100;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 17),
@@ -1277,7 +1317,7 @@ class StockDetailsPage extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  '\$0.10',
+                  spread == null ? '--' : '\$${spread.toStringAsFixed(2)}',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -1286,7 +1326,9 @@ class StockDetailsPage extends StatelessWidget {
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  '(0.06%)',
+                  spreadPercentage == null
+                      ? ''
+                      : '(${spreadPercentage.toStringAsFixed(2)}%)',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w400,
@@ -1321,7 +1363,7 @@ class StockDetailsPage extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '25,500',
+                      '--',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -1330,7 +1372,7 @@ class StockDetailsPage extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '\$4.20M',
+                      '--',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w400,
@@ -1360,7 +1402,7 @@ class StockDetailsPage extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '24,000',
+                      '--',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -1369,7 +1411,7 @@ class StockDetailsPage extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '\$3.96M',
+                      '--',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w400,

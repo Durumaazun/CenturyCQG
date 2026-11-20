@@ -50,6 +50,10 @@ class DashboardService extends ChangeNotifier {
 
   final List<Stock> _watchedStocks = [];
   List<Stock> get watchedStocks => _watchedStocks;
+  bool _isWatchedStocksLoading = false;
+  bool get isWatchedStocksLoading => _isWatchedStocksLoading;
+  String? _watchedStocksError;
+  String? get watchedStocksError => _watchedStocksError;
 
   final List<Position> _topPositions = [];
   List<Position> get topPositions => _topPositions;
@@ -122,15 +126,38 @@ class DashboardService extends ChangeNotifier {
   }
 
   Future<void> callWatchedStocks(BuildContext context) async {
-    final response = await _repository.fetchWatchedStocks(context);
-    _watchedStocks.clear();
-    if ((response != null) && (response is List)) {
-      final data = response.map((e) => Stock.fromJson(e)).toList();
-
-      _watchedStocks.addAll(data);
-    }
-
+    _isWatchedStocksLoading = true;
+    _watchedStocksError = null;
     notifyListeners();
+
+    try {
+      final response = await _repository.fetchWatchedStocks(context);
+      if (response is NetworkResponse) {
+        _watchedStocksError =
+            'Unable to load recently watched stocks (${response.statusCode}).';
+        return;
+      }
+
+      if (response == null) {
+        _watchedStocksError =
+            'No recently watched stocks response was received.';
+        return;
+      }
+
+      late final List<Stock> stocks;
+      try {
+        stocks = Stock.listFromResponse(response);
+      } on FormatException catch (error) {
+        _watchedStocksError = error.message;
+        return;
+      }
+      _watchedStocks
+        ..clear()
+        ..addAll(stocks);
+    } finally {
+      _isWatchedStocksLoading = false;
+      notifyListeners();
+    }
   }
 
   Future<void> callMarketUpdates(

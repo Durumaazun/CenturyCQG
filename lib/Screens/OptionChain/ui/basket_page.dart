@@ -1,11 +1,8 @@
-import 'package:century_cqg/Screens/Dashboard/service/dasboard_service.dart';
-import 'package:century_cqg/Screens/Dashboard/ui/home_page.dart';
-import 'package:century_cqg/Screens/Trade/service/trade_page_service.dart';
-import 'package:century_cqg/Screens/Trade/ui/orders/order_pending_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import 'basket_analysis_page.dart';
+import 'order_pending_page.dart';
 
 class BasketPageNotifier extends ChangeNotifier {
   bool _sameQty = false;
@@ -520,30 +517,6 @@ class BasketPage extends StatelessWidget {
                   builder: (sheetContext) {
                     return OrderPendingPage(
                       symbol: '$symbol BASKET (${selectedRows.length})',
-                      units: '650',
-                      amount: '\$113,711.00',
-                      orderType: 'Basket',
-                      gtcDate: '07/06/2026',
-                      stopLoss: '\$21,345.00',
-                      orderId: '#84060356',
-                      orderSide: 'Buy',
-                      onDone: () {
-                        final dashboardService =
-                            context.read<DashboardService>();
-                        dashboardService.setIsFromDetails(true);
-                        dashboardService.setSelectedHomeTabIndex(3);
-                        try {
-                          context.read<TradePageService>().setSelectedTabIndex(
-                            1,
-                          );
-                        } catch (_) {}
-                        Navigator.of(context).pushAndRemoveUntil(
-                          MaterialPageRoute(
-                            builder: (_) => const MobileHomePage(),
-                          ),
-                          (route) => false,
-                        );
-                      },
                     );
                   },
                 );

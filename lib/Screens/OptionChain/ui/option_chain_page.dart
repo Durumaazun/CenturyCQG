@@ -1,13 +1,10 @@
-import 'package:century_cqg/Screens/Dashboard/service/dasboard_service.dart';
-import 'package:century_cqg/Screens/Dashboard/ui/home_page.dart';
-import 'package:century_cqg/Screens/Trade/service/trade_page_service.dart';
-import 'package:century_cqg/Screens/Trade/ui/orders/order_pending_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import '../service/option_chain_service.dart';
 import '../provider/option_chain_provider.dart';
 import 'basket_page.dart';
+import 'order_pending_page.dart';
 
 class OptionChainPage extends StatefulWidget {
   final String symbol;
@@ -1278,10 +1275,6 @@ class _OptionChainPageState extends State<OptionChainPage> {
               Expanded(
                 child: ElevatedButton(
                   onPressed: () {
-                    final ltp =
-                        isPut
-                            ? selectedData['putLTP']
-                            : selectedData['callLTP'];
                     showModalBottomSheet<void>(
                       context: context,
                       isScrollControlled: true,
@@ -1290,30 +1283,6 @@ class _OptionChainPageState extends State<OptionChainPage> {
                       builder: (sheetContext) {
                         return OrderPendingPage(
                           symbol: '$symbol 20 Jun $strikePrice $optionType',
-                          units: '100',
-                          amount: '\$${ltp ?? 12.40}',
-                          orderType: 'Limit',
-                          gtcDate: '07/06/2026',
-                          stopLoss: '\$163.3',
-                          orderId: '#84060356',
-                          orderSide: 'Sell',
-                          onDone: () {
-                            final dashboardService =
-                                context.read<DashboardService>();
-                            dashboardService.setIsFromDetails(true);
-                            dashboardService.setSelectedHomeTabIndex(3);
-                            try {
-                              context
-                                  .read<TradePageService>()
-                                  .setSelectedTabIndex(1);
-                            } catch (_) {}
-                            Navigator.of(context).pushAndRemoveUntil(
-                              MaterialPageRoute(
-                                builder: (_) => const MobileHomePage(),
-                              ),
-                              (route) => false,
-                            );
-                          },
                         );
                       },
                     );
@@ -1341,10 +1310,6 @@ class _OptionChainPageState extends State<OptionChainPage> {
               Expanded(
                 child: ElevatedButton(
                   onPressed: () {
-                    final ltp =
-                        isPut
-                            ? selectedData['putLTP']
-                            : selectedData['callLTP'];
                     showModalBottomSheet<void>(
                       context: context,
                       isScrollControlled: true,
@@ -1353,30 +1318,6 @@ class _OptionChainPageState extends State<OptionChainPage> {
                       builder: (sheetContext) {
                         return OrderPendingPage(
                           symbol: '$symbol 20 Jun $strikePrice $optionType',
-                          units: '100',
-                          amount: '\$${ltp ?? 12.40}',
-                          orderType: 'Limit',
-                          gtcDate: '07/06/2026',
-                          stopLoss: '\$163.3',
-                          orderId: '#84060356',
-                          orderSide: 'Buy',
-                          onDone: () {
-                            final dashboardService =
-                                context.read<DashboardService>();
-                            dashboardService.setIsFromDetails(true);
-                            dashboardService.setSelectedHomeTabIndex(3);
-                            try {
-                              context
-                                  .read<TradePageService>()
-                                  .setSelectedTabIndex(1);
-                            } catch (_) {}
-                            Navigator.of(context).pushAndRemoveUntil(
-                              MaterialPageRoute(
-                                builder: (_) => const MobileHomePage(),
-                              ),
-                              (route) => false,
-                            );
-                          },
                         );
                       },
                     );

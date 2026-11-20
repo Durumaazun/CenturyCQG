@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:provider/provider.dart';
@@ -5,8 +7,8 @@ import 'package:table_calendar/table_calendar.dart';
 import 'package:century_cqg/Helper/nerve_base.dart';
 import 'package:century_cqg/Screens/Account/model/account_model.dart';
 import 'package:century_cqg/Screens/Account/accnts_tabs/model/analysis_model.dart';
-import 'package:century_cqg/Screens/Account/accnts_tabs/service/accnts_tab_service.dart';
-import 'package:century_cqg/Screens/Dashboard/service/dasboard_service.dart';
+import 'package:century_cqg/Screens/Account/accnts_tabs/service/analysis_service.dart';
+import 'package:century_cqg/Screens/Account/accnts_tabs/ui/trade_day_details_page.dart';
 
 class AnalysisTab extends StatefulWidget {
   const AnalysisTab({super.key});
@@ -16,38 +18,15 @@ class AnalysisTab extends StatefulWidget {
 }
 
 class _AnalysisTabState extends State<AnalysisTab> {
-  bool _initialLoadStarted = false;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_initialLoadStarted) return;
-    _initialLoadStarted = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        context.read<AccntsTabService>().loadAnalysis(context);
-      }
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
-    context.watch<DashboardService>();
     final isDarkMode = NerveBase().isDarkMode;
 
-    return Consumer<AccntsTabService>(
+    return Consumer<AnalysisService>(
       builder: (context, analysisService, _) {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (analysisService.isPerformanceLoading &&
-                analysisService.getSummaryCards().isEmpty)
-              const LinearProgressIndicator(),
-            if (analysisService.performanceError != null)
-              _errorMessage(
-                analysisService.performanceError!,
-                () => analysisService.fetchPerformance(context),
-              ),
             performanceChartView(isDarkMode, analysisService),
             const SizedBox(height: 12),
 
@@ -63,7 +42,7 @@ class _AnalysisTabState extends State<AnalysisTab> {
   Future<void> selectMonthAndYear(
     BuildContext context,
     bool isDarkMode,
-    AccntsTabService analysisService,
+    AnalysisService analysisService,
   ) async {
     analysisService.initDialogMonthYear();
 
@@ -73,7 +52,7 @@ class _AnalysisTabState extends State<AnalysisTab> {
         final dialogColor = isDarkMode ? const Color(0xFF141A16) : Colors.white;
         final textColor = isDarkMode ? Colors.white : const Color(0xFF454A54);
 
-        return Consumer<AccntsTabService>(
+        return Consumer<AnalysisService>(
           builder: (context, service, _) {
             return AlertDialog(
               backgroundColor: dialogColor,
@@ -112,8 +91,8 @@ class _AnalysisTabState extends State<AnalysisTab> {
                       style: TextStyle(color: textColor),
                       items: [
                         for (
-                          var year = AccntsTabService.firstCalendarMonth.year;
-                          year <= AccntsTabService.lastCalendarMonth.year;
+                          var year = AnalysisService.firstCalendarMonth.year;
+                          year <= AnalysisService.lastCalendarMonth.year;
                           year++
                         )
                           DropdownMenuItem(
@@ -155,10 +134,12 @@ class _AnalysisTabState extends State<AnalysisTab> {
     BuildContext context,
     bool isDarkMode,
   ) async {
-    final marketImpactOptions = AccntsTabService.marketImpactOptions;
-    final timeOptions = AccntsTabService.timeOptions;
+    final marketImpactOptions = AnalysisService.marketImpactOptions;
+    final timeOptions = AnalysisService.timeOptions;
     const int customTimeIndex = 5;
     final customRangeController = TextEditingController();
+    customRangeController.text =
+        context.read<AnalysisService>().customRange ?? '';
     final customRangeFocusNode = FocusNode();
     final customFieldKey = GlobalKey();
 
@@ -177,7 +158,7 @@ class _AnalysisTabState extends State<AnalysisTab> {
           final chipBackground =
               isDarkMode ? const Color(0xFF1D2321) : const Color(0xFFF5F6F8);
 
-          return Consumer<AccntsTabService>(
+          return Consumer<AnalysisService>(
             builder: (context, service, _) {
               final selectedMarketImpact = service.selectedMarketImpact;
               final selectedTime = service.selectedTime;
@@ -351,9 +332,13 @@ class _AnalysisTabState extends State<AnalysisTab> {
         },
       );
       if (context.mounted) {
-        await context.read<AccntsTabService>().fetchPerformance(
+        final service = context.read<AnalysisService>();
+        await service.fetchPerformance(
           context,
-          customRange: customRangeController.text,
+          customRange:
+              service.selectedTime == customTimeIndex
+                  ? customRangeController.text
+                  : null,
         );
       }
     } finally {
@@ -397,9 +382,9 @@ class _AnalysisTabState extends State<AnalysisTab> {
   Widget tradesCalendarView(
     BuildContext context,
     bool isDarkMode,
-    AccntsTabService analysisService,
+    AnalysisService analysisService,
   ) {
-    final weekDays = AccntsTabService.weekDays;
+    final weekDays = AnalysisService.weekDays;
 
     return Container(
       width: double.infinity,
@@ -442,7 +427,7 @@ class _AnalysisTabState extends State<AnalysisTab> {
                     icon: Icons.chevron_left_rounded,
                     isDarkMode: isDarkMode,
                     isEnabled: analysisService.focusedDay.isAfter(
-                      AccntsTabService.firstCalendarMonth,
+                      AnalysisService.firstCalendarMonth,
                     ),
                     onTap: () {
                       analysisService.previousMonth();
@@ -484,7 +469,7 @@ class _AnalysisTabState extends State<AnalysisTab> {
                     icon: Icons.chevron_right_rounded,
                     isDarkMode: isDarkMode,
                     isEnabled: analysisService.focusedDay.isBefore(
-                      AccntsTabService.lastCalendarMonth,
+                      AnalysisService.lastCalendarMonth,
                     ),
                     onTap: () {
                       analysisService.nextMonth();
@@ -584,6 +569,20 @@ class _AnalysisTabState extends State<AnalysisTab> {
                     ),
                   ),
             ),
+            onDaySelected: (selectedDay, focusedDayParam) {
+              analysisService.setFocusedDay(focusedDayParam);
+              final status = analysisService.statusForDay(selectedDay);
+              if (status != TradeDayStatus.win &&
+                  status != TradeDayStatus.loss) {
+                return;
+              }
+              unawaited(analysisService.fetchDayDetails(context, selectedDay));
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => TradeDayDetailsPage(date: selectedDay),
+                ),
+              );
+            },
             onPageChanged: (focusedDayParam) {
               final previousMonth = analysisService.focusedDay.month;
               final previousYear = analysisService.focusedDay.year;
@@ -725,7 +724,7 @@ class _AnalysisTabState extends State<AnalysisTab> {
   Widget performanceStatsView(
     bool isDarkMode,
     BuildContext context,
-    AccntsTabService analysisService,
+    AnalysisService analysisService,
   ) {
     final summaryCards = analysisService.getSummaryCards();
     final stats = analysisService.getPerformanceStats();
@@ -795,6 +794,15 @@ class _AnalysisTabState extends State<AnalysisTab> {
               ),
             ],
           ),
+          if (analysisService.statsLoading &&
+              summaryCards.isEmpty &&
+              stats.isEmpty)
+            const LinearProgressIndicator(),
+          if (analysisService.statsError != null)
+            _errorMessage(
+              analysisService.statsError!,
+              () => analysisService.fetchPerformanceStats(context),
+            ),
           const SizedBox(height: 16),
           Row(
             children: List.generate(summaryCards.length, (index) {
@@ -861,15 +869,27 @@ class _AnalysisTabState extends State<AnalysisTab> {
 
   Widget performanceChartView(
     bool isDarkMode,
-    AccntsTabService analysisService,
+    AnalysisService analysisService,
   ) {
     final chartData = analysisService.getPerformanceChartData();
+    final largestTradeCount = chartData.fold<double>(0, (largest, point) {
+      final pointMaximum =
+          point.winningTrades > point.losingTrades
+              ? point.winningTrades
+              : point.losingTrades;
+      return pointMaximum > largest ? pointMaximum : largest;
+    });
+    final yAxisInterval = (largestTradeCount / 6).ceilToDouble().clamp(
+      1.0,
+      double.infinity,
+    );
+    final maxY = yAxisInterval * 6;
 
     return Align(
       alignment: Alignment.center,
       child: Container(
         padding: const EdgeInsets.only(top: 8, bottom: 8, left: 16, right: 16),
-        width: 390,
+        width: double.infinity,
         height: 298,
         decoration: BoxDecoration(
           color: isDarkMode ? const Color(0xFF0D110F) : Colors.white,
@@ -937,143 +957,168 @@ class _AnalysisTabState extends State<AnalysisTab> {
             Expanded(
               child: Column(
                 children: [
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: BarChart(
-                        BarChartData(
-                          minY: 0,
-                          maxY: 18,
-                          barTouchData: BarTouchData(enabled: false),
-                          alignment: BarChartAlignment.spaceAround,
-                          gridData: FlGridData(
-                            show: true,
-                            drawVerticalLine: false,
-                            horizontalInterval: 3,
-                            getDrawingHorizontalLine:
-                                (_) => FlLine(
+                  if (analysisService.chartLoading && chartData.isEmpty)
+                    const Expanded(
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  else if (analysisService.chartError != null)
+                    Expanded(
+                      child: Center(
+                        child: _errorMessage(
+                          analysisService.chartError!,
+                          () => analysisService.fetchPerformanceChart(context),
+                        ),
+                      ),
+                    )
+                  else if (chartData.isEmpty)
+                    const Expanded(
+                      child: Center(child: Text('No chart data available.')),
+                    )
+                  else
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: BarChart(
+                          BarChartData(
+                            minY: 0,
+                            maxY: maxY,
+                            barTouchData: BarTouchData(enabled: false),
+                            alignment: BarChartAlignment.spaceAround,
+                            gridData: FlGridData(
+                              show: true,
+                              drawVerticalLine: false,
+                              horizontalInterval: yAxisInterval,
+                              getDrawingHorizontalLine:
+                                  (_) => FlLine(
+                                    color:
+                                        isDarkMode
+                                            ? const Color(0xFF243029)
+                                            : const Color(0xFFEFF2F6),
+                                    strokeWidth: 1,
+                                  ),
+                            ),
+                            borderData: FlBorderData(
+                              show: true,
+                              border: Border(
+                                bottom: BorderSide(
                                   color:
                                       isDarkMode
                                           ? const Color(0xFF243029)
-                                          : const Color(0xFFEFF2F6),
-                                  strokeWidth: 1,
+                                          : const Color(0xFFEEF1F5),
+                                  width: 1,
                                 ),
-                          ),
-                          borderData: FlBorderData(
-                            show: true,
-                            border: Border(
-                              bottom: BorderSide(
-                                color:
-                                    isDarkMode
-                                        ? const Color(0xFF243029)
-                                        : const Color(0xFFEEF1F5),
-                                width: 1,
+                                left: const BorderSide(
+                                  color: Colors.transparent,
+                                ),
+                                right: const BorderSide(
+                                  color: Colors.transparent,
+                                ),
+                                top: const BorderSide(
+                                  color: Colors.transparent,
+                                ),
                               ),
-                              left: const BorderSide(color: Colors.transparent),
-                              right: const BorderSide(
-                                color: Colors.transparent,
+                            ),
+                            titlesData: FlTitlesData(
+                              topTitles: const AxisTitles(
+                                sideTitles: SideTitles(showTitles: false),
                               ),
-                              top: const BorderSide(color: Colors.transparent),
-                            ),
-                          ),
-                          titlesData: FlTitlesData(
-                            topTitles: const AxisTitles(
-                              sideTitles: SideTitles(showTitles: false),
-                            ),
-                            rightTitles: const AxisTitles(
-                              sideTitles: SideTitles(showTitles: false),
-                            ),
-                            leftTitles: AxisTitles(
-                              sideTitles: SideTitles(
-                                showTitles: true,
-                                interval: 3,
-                                reservedSize: 24,
-                                getTitlesWidget:
-                                    (value, meta) => Text(
-                                      value.toInt().toString(),
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        color:
-                                            isDarkMode
-                                                ? const Color(0xFF9AA3B2)
-                                                : const Color(0xFF8A93A3),
+                              rightTitles: const AxisTitles(
+                                sideTitles: SideTitles(showTitles: false),
+                              ),
+                              leftTitles: AxisTitles(
+                                sideTitles: SideTitles(
+                                  showTitles: true,
+                                  interval: yAxisInterval,
+                                  reservedSize: 24,
+                                  getTitlesWidget:
+                                      (value, meta) => Text(
+                                        value.toInt().toString(),
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color:
+                                              isDarkMode
+                                                  ? const Color(0xFF9AA3B2)
+                                                  : const Color(0xFF8A93A3),
+                                        ),
                                       ),
-                                    ),
+                                ),
                               ),
-                            ),
-                            bottomTitles: AxisTitles(
-                              sideTitles: SideTitles(
-                                showTitles: true,
-                                getTitlesWidget: (value, meta) {
-                                  final index = value.toInt();
-                                  if (index < 0 || index >= chartData.length) {
-                                    return const SizedBox.shrink();
-                                  }
-                                  return Padding(
-                                    padding: const EdgeInsets.only(top: 8),
-                                    child: Text(
-                                      chartData[index].day,
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        color:
-                                            isDarkMode
-                                                ? const Color(0xFF9AA3B2)
-                                                : const Color(0xFF8A93A3),
+                              bottomTitles: AxisTitles(
+                                sideTitles: SideTitles(
+                                  showTitles: true,
+                                  getTitlesWidget: (value, meta) {
+                                    final index = value.toInt();
+                                    if (index < 0 ||
+                                        index >= chartData.length) {
+                                      return const SizedBox.shrink();
+                                    }
+                                    return Padding(
+                                      padding: const EdgeInsets.only(top: 8),
+                                      child: Text(
+                                        chartData[index].label,
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color:
+                                              isDarkMode
+                                                  ? const Color(0xFF9AA3B2)
+                                                  : const Color(0xFF8A93A3),
+                                        ),
                                       ),
-                                    ),
-                                  );
-                                },
+                                    );
+                                  },
+                                ),
                               ),
                             ),
+                            barGroups: List.generate(chartData.length, (index) {
+                              final point = chartData[index];
+                              return BarChartGroupData(
+                                x: index,
+                                barsSpace: 6,
+                                barRods: [
+                                  BarChartRodData(
+                                    toY: point.winningTrades,
+                                    width: 12,
+                                    borderRadius: const BorderRadius.only(
+                                      topLeft: Radius.circular(6),
+                                      topRight: Radius.circular(6),
+                                    ),
+                                    color: const Color(0xFF2EBD85),
+                                  ),
+                                  BarChartRodData(
+                                    toY: point.losingTrades,
+                                    width: 12,
+                                    borderRadius: const BorderRadius.only(
+                                      topLeft: Radius.circular(6),
+                                      topRight: Radius.circular(6),
+                                    ),
+                                    color: const Color(0xFFF6465D),
+                                  ),
+                                ],
+                              );
+                            }),
                           ),
-                          barGroups: List.generate(chartData.length, (index) {
-                            final point = chartData[index];
-                            return BarChartGroupData(
-                              x: index,
-                              barsSpace: 6,
-                              barRods: [
-                                BarChartRodData(
-                                  toY: point.winningTrades,
-                                  width: 12,
-                                  borderRadius: const BorderRadius.only(
-                                    topLeft: Radius.circular(6),
-                                    topRight: Radius.circular(6),
-                                  ),
-                                  color: const Color(0xFF2EBD85),
-                                ),
-                                BarChartRodData(
-                                  toY: point.losingTrades,
-                                  width: 12,
-                                  borderRadius: const BorderRadius.only(
-                                    topLeft: Radius.circular(6),
-                                    topRight: Radius.circular(6),
-                                  ),
-                                  color: const Color(0xFFF6465D),
-                                ),
-                              ],
-                            );
-                          }),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _chartLegendItem(
-                        label: 'Winning Trades',
-                        color: const Color(0xFF2EBD85),
-                        isDarkMode: isDarkMode,
-                      ),
-                      const SizedBox(width: 20),
-                      _chartLegendItem(
-                        label: 'Losing Trades',
-                        color: const Color(0xFFF6465D),
-                        isDarkMode: isDarkMode,
-                      ),
-                    ],
-                  ),
+                  if (chartData.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _chartLegendItem(
+                          label: 'Winning Trades',
+                          color: const Color(0xFF2EBD85),
+                          isDarkMode: isDarkMode,
+                        ),
+                        const SizedBox(width: 20),
+                        _chartLegendItem(
+                          label: 'Losing Trades',
+                          color: const Color(0xFFF6465D),
+                          isDarkMode: isDarkMode,
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),

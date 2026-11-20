@@ -18,7 +18,6 @@ class WatchlistPage extends StatefulWidget {
 class _WatchlistPageState extends State<WatchlistPage> {
   final TextEditingController _nameController = TextEditingController();
   final FocusNode _renameFocusNode = FocusNode();
-  bool _isApplyingChanges = false;
 
   @override
   void dispose() {
@@ -52,10 +51,10 @@ class _WatchlistPageState extends State<WatchlistPage> {
   }
 
   Future<void> _saveChanges(WatchlistService watchlistService) async {
-    if (_isApplyingChanges) {
+    if (watchlistService.isApplyingChanges) {
       return;
     }
-    setState(() => _isApplyingChanges = true);
+    watchlistService.setApplyingChanges(true);
 
     try {
       final watchlistName = watchlistService.editingWatchlistName;
@@ -72,7 +71,7 @@ class _WatchlistPageState extends State<WatchlistPage> {
         return;
       }
 
-      final newName = _nameController.text.trim();
+      final newName = watchlistService.editingWatchlistNameDraft?.trim() ?? '';
       if (newName.isNotEmpty &&
           newName != watchlistService.editingWatchlistName) {
         final renamed = await watchlistService.renameSelectedWatchlist(
@@ -101,9 +100,7 @@ class _WatchlistPageState extends State<WatchlistPage> {
         );
       }
     } finally {
-      if (mounted) {
-        setState(() => _isApplyingChanges = false);
-      }
+      watchlistService.setApplyingChanges(false);
     }
   }
 
@@ -467,9 +464,9 @@ class _WatchlistPageState extends State<WatchlistPage> {
           final hasChanges =
               watchlistService.hasEditableItemsReordered ||
               selectedItemKeys.isNotEmpty ||
-              _nameController.text.trim() !=
+              watchlistService.editingWatchlistNameDraft?.trim() !=
                   watchlistService.editingWatchlistName;
-          final canApply = hasChanges && !_isApplyingChanges;
+          final canApply = hasChanges && !watchlistService.isApplyingChanges;
           final areAllItemsSelected =
               editableItems.isNotEmpty &&
               selectedItemKeys.length == editableItems.length;
@@ -495,10 +492,12 @@ class _WatchlistPageState extends State<WatchlistPage> {
                               child: IntrinsicWidth(
                                 child: TextField(
                                   controller: _nameController,
-                                  onChanged: (_) => setState(() {}),
+                                  onChanged:
+                                      watchlistService
+                                          .setEditingWatchlistNameDraft,
                                   readOnly:
                                       isFavouritesWatchlist ||
-                                      _isApplyingChanges,
+                                      watchlistService.isApplyingChanges,
                                   style: NerveStyles.black_medium_16(
                                     isDarkMode,
                                   ).copyWith(
@@ -574,7 +573,8 @@ class _WatchlistPageState extends State<WatchlistPage> {
                         checkColor: Colors.black,
                         side: BorderSide(color: reorderHandleColor),
                         onChanged:
-                            editableItems.isEmpty || _isApplyingChanges
+                            editableItems.isEmpty ||
+                                    watchlistService.isApplyingChanges
                                 ? null
                                 : (_) =>
                                     watchlistService
@@ -582,7 +582,8 @@ class _WatchlistPageState extends State<WatchlistPage> {
                       ),
                       GestureDetector(
                         onTap:
-                            editableItems.isEmpty || _isApplyingChanges
+                            editableItems.isEmpty ||
+                                    watchlistService.isApplyingChanges
                                 ? null
                                 : () {
                                   if (!areAllItemsSelected) {
@@ -629,7 +630,7 @@ class _WatchlistPageState extends State<WatchlistPage> {
                               ),
                               itemCount: editableItems.length,
                               onReorder: (oldIndex, newIndex) {
-                                if (!_isApplyingChanges) {
+                                if (!watchlistService.isApplyingChanges) {
                                   watchlistService.reorderEditableItem(
                                     oldIndex,
                                     newIndex,
@@ -670,7 +671,7 @@ class _WatchlistPageState extends State<WatchlistPage> {
                                           color: reorderHandleColor,
                                         ),
                                         onChanged:
-                                            _isApplyingChanges
+                                            watchlistService.isApplyingChanges
                                                 ? null
                                                 : (_) => watchlistService
                                                     .toggleEditableItemSelection(
@@ -755,7 +756,8 @@ class _WatchlistPageState extends State<WatchlistPage> {
                                       const SizedBox(width: 8),
                                       ReorderableDragStartListener(
                                         index: index,
-                                        enabled: !_isApplyingChanges,
+                                        enabled:
+                                            !watchlistService.isApplyingChanges,
                                         child: Padding(
                                           padding: const EdgeInsets.only(
                                             left: 4,

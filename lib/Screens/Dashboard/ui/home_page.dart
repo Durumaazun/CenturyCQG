@@ -9,6 +9,8 @@ import 'package:century_cqg/Helper/nerve_colors.dart';
 import 'package:century_cqg/Screens/Dashboard/service/dasboard_service.dart';
 import 'package:century_cqg/Screens/Watchlist/service/watchlist_service.dart';
 import 'package:century_cqg/Screens/Account/ui/account_page.dart';
+import 'package:century_cqg/Screens/Account/service/account_service.dart';
+import 'package:century_cqg/Screens/Account/accnts_tabs/service/accnts_tab_service.dart';
 import 'package:century_cqg/Screens/Dashboard/ui/dashboard_body_view.dart';
 import 'package:century_cqg/Screens/Dashboard/ui/dashboard_appbar.dart';
 import 'package:century_cqg/Screens/Watchlist/ui/watchlist_page.dart';
@@ -619,6 +621,11 @@ class MobileHomePageState extends State<MobileHomePage> {
             ],
             onTap: (index) {
               context.read<DashboardService>().setSelectedHomeTabIndex(index);
+              if (index == 2 &&
+                  context.read<AccountService>().selectedTabIndex == 0) {
+                context.read<AccntsTabService>().loadAccountOverview(context);
+                context.read<DashboardService>().callTopPositions(context);
+              }
               if (index == 1) {
                 context.read<WatchlistService>().fetchWatchlistSymbols();
               }

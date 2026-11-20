@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 
 import 'package:century_cqg/Helper/nerve_styles.dart';
-import 'package:century_cqg/Screens/Trade/History/model/history_model.dart';
+import 'package:century_cqg/Screens/Trade/model/trade_api_models.dart';
 import 'package:century_cqg/Screens/Trade/History/service/history_service.dart';
 
 class HistoryList extends StatelessWidget {
@@ -17,7 +18,17 @@ class HistoryList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final history = context.watch<HistoryService>().history;
+    final service = context.watch<HistoryService>();
+    final history = service.history;
+    if (service.isLoading && history.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (service.error != null && history.isEmpty) {
+      return _loadError(service.error!, service.fetchHistory);
+    }
+    if (history.isEmpty) {
+      return const Center(child: Text('No trade history found.'));
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -43,15 +54,17 @@ class HistoryList extends StatelessWidget {
             separatorBuilder: (_, __) => const Divider(height: 1),
             itemBuilder: (context, index) {
               final item = history[index];
+              final dateLabel = _dateLabel(item.updatedAt);
               final showDate =
-                  index == 0 || item.dateLabel != history[index - 1].dateLabel;
+                  index == 0 ||
+                  dateLabel != _dateLabel(history[index - 1].updatedAt);
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (showDate) ...[
                     if (index != 0) const SizedBox(height: 16),
                     Text(
-                      item.dateLabel,
+                      dateLabel,
                       style: NerveStyles.tradeDetailsSectionTitleStyle(
                         textColor,
                       ),
@@ -68,9 +81,12 @@ class HistoryList extends StatelessWidget {
     );
   }
 
-  Widget _historyRow(HistoryItem item, Color textColor, Color mutedColor) {
+  Widget _historyRow(TradeHistoryItem item, Color textColor, Color mutedColor) {
     const sellColor = Color(0xFFE53935);
     const takeProfitColor = Color(0xFF00A879);
+    final time = item.updatedAt?.toLocal();
+    final sideColor =
+        item.side.toLowerCase() == 'buy' ? takeProfitColor : sellColor;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12, top: 12),
@@ -82,12 +98,14 @@ class HistoryList extends StatelessWidget {
                 width: 18,
                 height: 18,
                 decoration: BoxDecoration(
-                  color: item.iconColor,
+                  color: const Color(0xFF8E8E93),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 alignment: Alignment.center,
                 child: Text(
-                  item.iconText,
+                  item.symbolName.isEmpty
+                      ? ''
+                      : item.symbolName[0].toUpperCase(),
                   style: const TextStyle(
                     fontFamily: 'Inter',
                     fontSize: 10,
@@ -98,7 +116,7 @@ class HistoryList extends StatelessWidget {
               ),
               const SizedBox(width: 10),
               Text(
-                item.symbol,
+                item.symbolName,
                 style: NerveStyles.tradePositionSymbolStyle(textColor),
               ),
               const Spacer(),
@@ -110,7 +128,7 @@ class HistoryList extends StatelessWidget {
               Icon(Icons.access_time, size: 13, color: mutedColor),
               const SizedBox(width: 4),
               Text(
-                item.orderTime,
+                time == null ? '--' : DateFormat('HH:mm').format(time),
                 style: NerveStyles.tradeDetailsOrderDateStyle(mutedColor),
               ),
             ],
@@ -122,15 +140,25 @@ class HistoryList extends StatelessWidget {
                 child: _metric(
                   'Type',
                   '${item.side} ${item.status}',
-                  sellColor,
+                  sideColor,
                   mutedColor,
                 ),
               ),
               Expanded(
-                child: _metric('Units', item.units, textColor, mutedColor),
+                child: _metric(
+                  'Units',
+                  _formatNumber(item.filledQuantity),
+                  textColor,
+                  mutedColor,
+                ),
               ),
               Expanded(
-                child: _metric('Price', item.price, textColor, mutedColor),
+                child: _metric(
+                  'Price',
+                  _money(item.price),
+                  textColor,
+                  mutedColor,
+                ),
               ),
               Expanded(
                 child: _slTpMetric(
@@ -170,7 +198,7 @@ class HistoryList extends StatelessWidget {
   }
 
   Widget _slTpMetric(
-    HistoryItem item,
+    TradeHistoryItem item,
     Color stopLossColor,
     Color takeProfitColor,
     Color labelColor,
@@ -187,9 +215,9 @@ class HistoryList extends StatelessWidget {
           text: TextSpan(
             style: NerveStyles.tradeDetailsOrderBuyValueStyle(stopLossColor),
             children: [
-              TextSpan(text: '${item.stopLoss} / '),
+              TextSpan(text: '${_optionalMoney(item.stopLoss)} / '),
               TextSpan(
-                text: item.takeProfit,
+                text: _optionalMoney(item.takeProfit),
                 style: NerveStyles.tradeDetailsOrderBuyValueStyle(
                   takeProfitColor,
                 ),
@@ -200,4 +228,31 @@ class HistoryList extends StatelessWidget {
       ],
     );
   }
+
+  Widget _loadError(String message, Future<void> Function() retry) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(message, textAlign: TextAlign.center),
+            TextButton(onPressed: retry, child: const Text('Retry')),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatNumber(num value) => NumberFormat('#,##0.##').format(value);
+
+  String _money(num value) => '\$${NumberFormat('#,##0.00').format(value)}';
+
+  String _optionalMoney(num? value) =>
+      value == null ? '--' : NumberFormat('#,##0.00').format(value);
+
+  String _dateLabel(DateTime? date) =>
+      date == null
+          ? 'Date unavailable'
+          : DateFormat('dd MMM yyyy').format(date.toLocal());
 }
